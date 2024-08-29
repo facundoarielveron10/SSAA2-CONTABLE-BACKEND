@@ -68,6 +68,16 @@ router.post(
     handleInputErrors,
     UserController.updatePassword
 );
+
+router.post(
+    "/change-role",
+    body("role").notEmpty().withMessage("El Rol no puede ir vacio"),
+    body("userId")
+        .notEmpty()
+        .withMessage("El ID del Usuario no puede ir vacio"),
+    handleInputErrors,
+    UserController.changeRole
+);
 // ---- POST ---- //
 
 // ---- GET ---- //

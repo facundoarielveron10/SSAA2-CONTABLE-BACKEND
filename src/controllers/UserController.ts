@@ -5,6 +5,7 @@ import Token from "../models/Token";
 import { generateToken } from "../utils/token";
 import { AuthEmail } from "../emails/AuthEmail";
 import { generateJWT } from "../utils/jwt";
+import Role from "../models/Role";
 
 export class UserController {
     static getAllUser = async (req: Request, res: Response) => {
@@ -199,6 +200,32 @@ export class UserController {
             await Promise.allSettled([user.save(), tokenExists.deleteOne()]);
 
             res.send("El Password se Modifico Correctamente");
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
+    static changeRole = async (req: Request, res: Response) => {
+        try {
+            const { role, userId } = req.body;
+
+            const newRole = await Role.findOne({ name: role });
+            if (!newRole) {
+                const error = new Error("El rol no existe");
+                return res.status(404).json({ errors: error.message });
+            }
+
+            const user = await User.findById(userId);
+            console.log();
+            if (String(user.role) === String(newRole.id)) {
+                const error = new Error("El Usuario ya posee ese rol");
+                return res.status(404).json({ errors: error.message });
+            }
+
+            user.role = newRole.id;
+            user.save();
+
+            res.send("El Rol ha sido cambiado exitosamente");
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }
