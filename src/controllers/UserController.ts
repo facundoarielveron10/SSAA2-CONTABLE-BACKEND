@@ -6,6 +6,7 @@ import { generateToken } from "../utils/token";
 import { AuthEmail } from "../emails/AuthEmail";
 import { generateJWT } from "../utils/jwt";
 import Role from "../models/Role";
+import RoleAction from "../models/RoleAction";
 
 export class UserController {
     static getAllUser = async (req: Request, res: Response) => {
@@ -92,7 +93,7 @@ export class UserController {
     static login = async (req: Request, res: Response) => {
         try {
             const { email, password } = req.body;
-            const user = await User.findOne({ email });
+            const user = await User.findOne({ email }).populate("role").exec();
 
             if (!user) {
                 const error = new Error("El usuario no fue encontrado");
@@ -128,13 +129,35 @@ export class UserController {
 
             const token = await generateJWT({
                 id: user.id,
-                name: user.name,
-                lastname: user.lastname,
-                email: user.email,
-                role: String(user.role),
             });
 
-            res.send(token);
+            const roleActions = await RoleAction.find({ role: user.role._id })
+                .populate({
+                    path: "action",
+                    select: "name -_id",
+                })
+                .exec();
+            console.log(roleActions);
+            const actions = roleActions
+                .map((roleAction) => {
+                    if ("name" in roleAction.action) {
+                        return (roleAction.action as any).name;
+                    }
+                    return null;
+                })
+                .filter((action): action is string => action !== null);
+
+            res.send({
+                jwt: token,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    lastname: user.lastname,
+                    email: user.email,
+                    role: user.role,
+                    actions: actions,
+                },
+            });
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }

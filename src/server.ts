@@ -4,6 +4,7 @@ import cors from "cors";
 import { corsConfig } from "./config/cors";
 import { connectDB } from "./config/database";
 import userRoutes from "./routes/userRoutes";
+import roleActionRoutes from "./routes/roleActionRoutes";
 
 dotenv.config();
 
@@ -16,5 +17,6 @@ app.use(express.json());
 
 // ROUTES
 app.use("/api/user", userRoutes);
+app.use("/api/role-action", roleActionRoutes);
 
 export default app;
