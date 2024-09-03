@@ -2,16 +2,16 @@ import type { Request, Response } from "express";
 import Action from "../models/Action";
 import Role from "../models/Role";
 import RoleAction from "../models/RoleAction";
-import { isAdmin } from "../utils/auth";
+import { hasPermissions } from "../utils/auth";
 
 export class RoleActionController {
     static getAllRoles = async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const isAdminUser = await isAdmin(id);
+            const isAdminUser = await hasPermissions(id, "GET_ROLES");
 
             if (!isAdminUser) {
-                const error = new Error("El Usuario no es Administrador");
+                const error = new Error("El Usuario no tiene permisos");
                 return res.status(409).json({ errors: error.message });
             }
 
@@ -26,10 +26,10 @@ export class RoleActionController {
     static getAllActions = async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const isAdminUser = await isAdmin(id);
+            const permissions = await hasPermissions(id, "GET_ACTIONS");
 
-            if (!isAdminUser) {
-                const error = new Error("El Usuario no es Administrador");
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
                 return res.status(409).json({ errors: error.message });
             }
 
@@ -73,7 +73,7 @@ export class RoleActionController {
 
             await RoleAction.insertMany(roleActions);
 
-            res.send("Role creado correctamente");
+            res.send("Rol creado correctamente");
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }

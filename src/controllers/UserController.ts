@@ -1,6 +1,11 @@
 import type { Request, Response } from "express";
 import User from "../models/User";
-import { checkPassword, hashPassword, isAdmin, roleUser } from "../utils/auth";
+import {
+    checkPassword,
+    hashPassword,
+    hasPermissions,
+    roleUser,
+} from "../utils/auth";
 import Token from "../models/Token";
 import { generateToken } from "../utils/token";
 import { AuthEmail } from "../emails/AuthEmail";
@@ -12,10 +17,10 @@ export class UserController {
     static getAllUser = async (req: Request, res: Response) => {
         try {
             const { id } = req.params;
-            const isAdminUser = await isAdmin(id);
+            const permissions = await hasPermissions(id, "GET_USERS");
 
-            if (!isAdminUser) {
-                const error = new Error("El Usuario no es Administrador");
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
                 return res.status(409).json({ errors: error.message });
             }
 
@@ -137,7 +142,7 @@ export class UserController {
                     select: "name -_id",
                 })
                 .exec();
-            console.log(roleActions);
+
             const actions = roleActions
                 .map((roleAction) => {
                     if ("name" in roleAction.action) {
