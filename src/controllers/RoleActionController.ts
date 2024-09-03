@@ -2,11 +2,48 @@ import type { Request, Response } from "express";
 import Action from "../models/Action";
 import Role from "../models/Role";
 import RoleAction from "../models/RoleAction";
+import { isAdmin } from "../utils/auth";
 
 export class RoleActionController {
+    static getAllRoles = async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            const isAdminUser = await isAdmin(id);
+
+            if (!isAdminUser) {
+                const error = new Error("El Usuario no es Administrador");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const roles = await Role.find({});
+
+            res.send(roles);
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
+    static getAllActions = async (req: Request, res: Response) => {
+        try {
+            const { id } = req.params;
+            const isAdminUser = await isAdmin(id);
+
+            if (!isAdminUser) {
+                const error = new Error("El Usuario no es Administrador");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const actions = await Action.find({});
+
+            res.send(actions);
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
     static createRole = async (req: Request, res: Response) => {
         try {
-            const { name, actions } = req.body;
+            const { name, nameDescriptive, description, actions } = req.body;
 
             const actionsData = await Action.find({ name: { $in: actions } });
             if (actionsData.length !== actions.length) {
@@ -24,6 +61,8 @@ export class RoleActionController {
 
             const newRole = new Role({
                 name: name,
+                nameDescriptive: nameDescriptive,
+                description: description,
             });
             newRole.save();
 

@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
 import { Types } from "mongoose";
-import Role from "../models/Role";
 
 type UserPayload = {
     id: Types.ObjectId;
@@ -8,7 +7,7 @@ type UserPayload = {
 
 export const generateJWT = async (payload: UserPayload) => {
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: "6m",
+        expiresIn: "1d",
     });
 
     return token;

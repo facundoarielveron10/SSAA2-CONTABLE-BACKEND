@@ -2,6 +2,8 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export type RoleType = Document & {
     name: string;
+    nameDescriptive: string;
+    description: string;
 };
 
 const roleSchema: Schema = new Schema({
@@ -9,6 +11,15 @@ const roleSchema: Schema = new Schema({
         type: String,
         required: true,
         unique: true,
+    },
+    nameDescriptive: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    description: {
+        type: String,
+        require: true,
     },
 });
 
