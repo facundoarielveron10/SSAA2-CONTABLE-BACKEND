@@ -3,14 +3,16 @@ import Action from "../models/Action";
 import Role from "../models/Role";
 import RoleAction from "../models/RoleAction";
 import { hasPermissions } from "../utils/auth";
+import { CustomRequest } from "../middleware/authenticate";
 
 export class RoleActionController {
-    static getAllRoles = async (req: Request, res: Response) => {
+    static getAllRoles = async (req: CustomRequest, res: Response) => {
         try {
-            const { id } = req.params;
-            const isAdminUser = await hasPermissions(id, "GET_ROLES");
+            const id = req.user["id"];
 
-            if (!isAdminUser) {
+            const permissions = await hasPermissions(id, "GET_ROLES");
+
+            if (!permissions) {
                 const error = new Error("El Usuario no tiene permisos");
                 return res.status(409).json({ errors: error.message });
             }
@@ -23,9 +25,25 @@ export class RoleActionController {
         }
     };
 
-    static getAllActions = async (req: Request, res: Response) => {
+    static getRole = async (req: CustomRequest, res: Response) => {
         try {
-            const { id } = req.params;
+            const id = req.user["id"];
+
+            const permissions = await hasPermissions(id, "EDIT_ROLE");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
+    static getAllActions = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+
             const permissions = await hasPermissions(id, "GET_ACTIONS");
 
             if (!permissions) {
@@ -41,8 +59,17 @@ export class RoleActionController {
         }
     };
 
-    static createRole = async (req: Request, res: Response) => {
+    static createRole = async (req: CustomRequest, res: Response) => {
         try {
+            const id = req.user["id"];
+
+            const permissions = await hasPermissions(id, "CREATE_ROL");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
             const { name, nameDescriptive, description, actions } = req.body;
 
             const actionsData = await Action.find({ name: { $in: actions } });

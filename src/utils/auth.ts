@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import Role from "../models/Role";
 import User from "../models/User";
 import RoleAction from "../models/RoleAction";
+import jwt from "jsonwebtoken";
 
 export const hashPassword = async (password: string) => {
     const salt = await bcrypt.genSalt(10);
@@ -53,4 +54,16 @@ export const roleUser = async () => {
 export const roleAdmin = async () => {
     const role = await Role.findOne({ name: "ROLE_ADMIN" });
     return role.id;
+};
+
+export const idUser = (token: string) => {
+    const secret = process.env.JWT_SECRET;
+
+    try {
+        const decoded = jwt.verify(token, secret);
+
+        console.log(decoded);
+    } catch (err) {
+        console.error("Error al verificar/decodificar el token:", err.message);
+    }
 };

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { body, param } from "express-validator";
 import { UserController } from "../controllers/UserController";
 import { handleInputErrors } from "../middleware/validation";
+import { authenticate } from "../middleware/authenticate";
 
 const router = Router();
 
@@ -71,6 +72,7 @@ router.post(
 
 router.post(
     "/change-role",
+    authenticate,
     body("role").notEmpty().withMessage("El Rol no puede ir vacio"),
     body("userId")
         .notEmpty()
@@ -81,6 +83,6 @@ router.post(
 // ---- POST ---- //
 
 // ---- GET ---- //
-router.get("/users/:id", UserController.getAllUser);
+router.get("/users", authenticate, UserController.getAllUser);
 // ---- GET ---- //
 export default router;

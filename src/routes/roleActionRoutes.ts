@@ -2,12 +2,14 @@ import { Router } from "express";
 import { body } from "express-validator";
 import { RoleActionController } from "../controllers/RoleActionController";
 import { handleInputErrors } from "../middleware/validation";
+import { authenticate } from "../middleware/authenticate";
 
 const router = Router();
 
 // ---- POST ---- //
 router.post(
     "/create-role",
+    authenticate,
     body("name").notEmpty().withMessage("El Nombre del Rol es Obligatorio"),
     body("nameDescriptive")
         .notEmpty()
@@ -24,8 +26,9 @@ router.post(
 // ---- POST ---- //
 
 // ---- GET ---- //
-router.get("/roles/:id", RoleActionController.getAllRoles);
-router.get("/actions/:id", RoleActionController.getAllActions);
+router.get("/roles", authenticate, RoleActionController.getAllRoles);
+router.get("/actions", authenticate, RoleActionController.getAllActions);
+router.get("/role", authenticate, RoleActionController.getRole);
 // ---- GET ---- //
 
 export default router;

@@ -4,6 +4,7 @@ import {
     checkPassword,
     hashPassword,
     hasPermissions,
+    idUser,
     roleUser,
 } from "../utils/auth";
 import Token from "../models/Token";
@@ -12,11 +13,13 @@ import { AuthEmail } from "../emails/AuthEmail";
 import { generateJWT } from "../utils/jwt";
 import Role from "../models/Role";
 import RoleAction from "../models/RoleAction";
+import { CustomRequest } from "../middleware/authenticate";
 
 export class UserController {
-    static getAllUser = async (req: Request, res: Response) => {
+    static getAllUser = async (req: CustomRequest, res: Response) => {
         try {
-            const { id } = req.params;
+            const id = req.user["id"];
+
             const permissions = await hasPermissions(id, "GET_USERS");
 
             if (!permissions) {
@@ -233,8 +236,17 @@ export class UserController {
         }
     };
 
-    static changeRole = async (req: Request, res: Response) => {
+    static changeRole = async (req: CustomRequest, res: Response) => {
         try {
+            const id = req.user["id"];
+
+            const permissions = await hasPermissions(id, "CHANGE_ROL");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
             const { role, userId } = req.body;
 
             const newRole = await Role.findOne({ name: role });
@@ -244,7 +256,6 @@ export class UserController {
             }
 
             const user = await User.findById(userId);
-            console.log();
             if (String(user.role) === String(newRole.id)) {
                 const error = new Error("El Usuario ya posee ese rol");
                 return res.status(404).json({ errors: error.message });
