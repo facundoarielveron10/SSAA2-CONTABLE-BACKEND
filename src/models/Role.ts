@@ -4,6 +4,7 @@ export type RoleType = Document & {
     name: string;
     nameDescriptive: string;
     description: string;
+    active: boolean;
 };
 
 const roleSchema: Schema = new Schema({
@@ -20,6 +21,11 @@ const roleSchema: Schema = new Schema({
     description: {
         type: String,
         require: true,
+    },
+    active: {
+        type: Boolean,
+        require: true,
+        default: true,
     },
 });
 

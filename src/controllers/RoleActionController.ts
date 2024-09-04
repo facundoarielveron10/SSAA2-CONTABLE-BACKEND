@@ -2,8 +2,9 @@ import type { Request, Response } from "express";
 import Action from "../models/Action";
 import Role from "../models/Role";
 import RoleAction from "../models/RoleAction";
-import { hasPermissions } from "../utils/auth";
+import { hasPermissions, roleAdmin, roleUser } from "../utils/auth";
 import { CustomRequest } from "../middleware/authenticate";
+import User from "../models/User";
 
 export class RoleActionController {
     static getAllRoles = async (req: CustomRequest, res: Response) => {
@@ -17,7 +18,7 @@ export class RoleActionController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            const roles = await Role.find({});
+            const roles = await Role.find({ active: true });
 
             res.send(roles);
         } catch (error) {
@@ -77,7 +78,6 @@ export class RoleActionController {
     static createRole = async (req: CustomRequest, res: Response) => {
         try {
             const id = req.user["id"];
-
             const permissions = await hasPermissions(id, "CREATE_ROLE");
 
             if (!permissions) {
@@ -97,8 +97,16 @@ export class RoleActionController {
 
             const roleExist = await Role.findOne({ name: name });
             if (roleExist) {
-                const error = new Error("El Rol ya existe");
-                return res.status(400).json({ errors: error.message });
+                if (roleExist.active === false) {
+                    roleExist.active = true;
+                    roleExist.nameDescriptive = nameDescriptive;
+                    roleExist.description = description;
+                    await roleExist.save();
+                    return res.send("Rol actualizado correctamente");
+                } else {
+                    const error = new Error("El rol ya existe");
+                    return res.status(400).json({ errors: error.message });
+                }
             }
 
             const newRole = new Role({
@@ -106,7 +114,7 @@ export class RoleActionController {
                 nameDescriptive: nameDescriptive,
                 description: description,
             });
-            newRole.save();
+            await newRole.save();
 
             const roleActions = actionsData.map((action) => ({
                 role: newRole._id,
@@ -169,6 +177,50 @@ export class RoleActionController {
             await RoleAction.insertMany(roleActions);
 
             res.send("Rol actualizado correctamente");
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
+    static deleteRole = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+            const { idRole } = req.body;
+
+            const permissions = await hasPermissions(id, "DELETE_ROLE");
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const role = await Role.findById(idRole);
+
+            if (!role) {
+                const error = new Error("El Rol no existe");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            if (role.name === "ROLE_ADMIN" || role.name === "ROLE_USER") {
+                const error = new Error(
+                    "No puedes eliminar el rol de Usuarios o el de Administrador"
+                );
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const users = await User.find({ role: idRole });
+            const newRole = await roleUser();
+
+            await Promise.all(
+                users.map(async (user) => {
+                    user.role = newRole;
+                    await user.save();
+                })
+            );
+
+            role.active = false;
+            role.save();
+
+            res.send("Rol eliminado correctamente");
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }

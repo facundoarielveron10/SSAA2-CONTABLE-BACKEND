@@ -17,9 +17,6 @@ router.post(
     body("description")
         .notEmpty()
         .withMessage("La Descricion del Rol es Obligatoria"),
-    body("actions")
-        .isArray({ min: 1 })
-        .withMessage("Las Acciones son obligatorias"),
     handleInputErrors,
     RoleActionController.createRole
 );
@@ -34,11 +31,15 @@ router.post(
     body("newDescription")
         .notEmpty()
         .withMessage("La Descricion del Rol es Obligatoria"),
-    body("newActions")
-        .isArray({ min: 1 })
-        .withMessage("Las Acciones son obligatorias"),
     handleInputErrors,
     RoleActionController.editRole
+);
+router.post(
+    "/delete-role",
+    authenticate,
+    body("idRole").notEmpty().withMessage("El ID del Rol es Obligatorio"),
+    handleInputErrors,
+    RoleActionController.deleteRole
 );
 // ---- POST ---- //
 
