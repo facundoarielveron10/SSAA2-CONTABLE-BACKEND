@@ -23,12 +23,29 @@ router.post(
     handleInputErrors,
     RoleActionController.createRole
 );
+router.post(
+    "/edit-role",
+    authenticate,
+    body("idRole").notEmpty().withMessage("El ID del Rol es Obligatorio"),
+    body("newName").notEmpty().withMessage("El Nombre del Rol es Obligatorio"),
+    body("newNameDescriptive")
+        .notEmpty()
+        .withMessage("El Nombre Descriptivo del Rol es Obligatorio"),
+    body("newDescription")
+        .notEmpty()
+        .withMessage("La Descricion del Rol es Obligatoria"),
+    body("newActions")
+        .isArray({ min: 1 })
+        .withMessage("Las Acciones son obligatorias"),
+    handleInputErrors,
+    RoleActionController.editRole
+);
 // ---- POST ---- //
 
 // ---- GET ---- //
 router.get("/roles", authenticate, RoleActionController.getAllRoles);
 router.get("/actions", authenticate, RoleActionController.getAllActions);
-router.get("/role", authenticate, RoleActionController.getRole);
+router.get("/role/:idRole", authenticate, RoleActionController.getRoleActions);
 // ---- GET ---- //
 
 export default router;

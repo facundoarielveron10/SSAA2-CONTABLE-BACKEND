@@ -24,6 +24,6 @@ export const authenticate = async (
 
         next();
     } catch (err) {
-        res.status(401).send("Please authenticate");
+        res.status(401).send("Usuario no autenticado");
     }
 };

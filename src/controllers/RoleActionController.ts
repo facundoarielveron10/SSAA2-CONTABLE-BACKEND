@@ -25,9 +25,10 @@ export class RoleActionController {
         }
     };
 
-    static getRole = async (req: CustomRequest, res: Response) => {
+    static getRoleActions = async (req: CustomRequest, res: Response) => {
         try {
             const id = req.user["id"];
+            const { idRole } = req.params;
 
             const permissions = await hasPermissions(id, "EDIT_ROLE");
 
@@ -35,6 +36,20 @@ export class RoleActionController {
                 const error = new Error("El Usuario no tiene permisos");
                 return res.status(409).json({ errors: error.message });
             }
+
+            const role = await Role.findById(idRole);
+
+            const actions = await RoleAction.find({ role: idRole })
+                .populate({
+                    path: "action",
+                    select: "name -_id",
+                })
+                .exec();
+
+            res.send({
+                role,
+                actions,
+            });
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }
@@ -63,7 +78,7 @@ export class RoleActionController {
         try {
             const id = req.user["id"];
 
-            const permissions = await hasPermissions(id, "CREATE_ROL");
+            const permissions = await hasPermissions(id, "CREATE_ROLE");
 
             if (!permissions) {
                 const error = new Error("El Usuario no tiene permisos");
@@ -101,6 +116,59 @@ export class RoleActionController {
             await RoleAction.insertMany(roleActions);
 
             res.send("Rol creado correctamente");
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
+    static editRole = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+            const {
+                idRole,
+                newName,
+                newNameDescriptive,
+                newDescription,
+                newActions,
+            } = req.body;
+
+            const permissions = await hasPermissions(id, "EDIT_ROLE");
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const role = await Role.findById(idRole);
+            if (!role) {
+                const error = new Error("El Rol no existe");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            role.name = newName;
+            role.nameDescriptive = newNameDescriptive;
+            role.description = newDescription;
+
+            await role.save();
+
+            await RoleAction.deleteMany({ role: idRole });
+
+            const actionIds = await Action.find({
+                name: { $in: newActions },
+            }).select("_id");
+
+            if (actionIds.length !== newActions.length) {
+                const error = new Error("Una o más acciones no existen");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const roleActions = actionIds.map((action) => ({
+                role: idRole,
+                action: action._id,
+            }));
+
+            await RoleAction.insertMany(roleActions);
+
+            res.send("Rol actualizado correctamente");
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }

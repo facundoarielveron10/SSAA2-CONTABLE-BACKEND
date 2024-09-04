@@ -240,7 +240,7 @@ export class UserController {
         try {
             const id = req.user["id"];
 
-            const permissions = await hasPermissions(id, "CHANGE_ROL");
+            const permissions = await hasPermissions(id, "CHANGE_ROLE");
 
             if (!permissions) {
                 const error = new Error("El Usuario no tiene permisos");
