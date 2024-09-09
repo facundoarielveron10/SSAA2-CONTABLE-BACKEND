@@ -77,6 +77,56 @@ export class UserController {
         }
     };
 
+    static createUserWithRole = async (req: Request, res: Response) => {
+        try {
+            const { name, lastname, password, email, role } = req.body;
+
+            // Prevenir usuarios duplicados
+            const userExists = await User.findOne({ email });
+            if (userExists) {
+                const error = new Error("El Usuario ya esta registrado");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            // Traer el rol seleccionado
+            const roleUser = await Role.findOne({ name: role });
+            if (!roleUser) {
+                const error = new Error("El Rol no fue encontrado");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            // Crear un usuario
+            const user = new User({
+                name,
+                lastname,
+                email,
+                password,
+                role: roleUser._id,
+            });
+
+            // Hashear la contraseña
+            user.password = await hashPassword(password);
+
+            // Generar el token
+            const token = new Token();
+            token.token = generateToken();
+            token.user = user.id;
+
+            // Enviar el email
+            AuthEmail.sendConfirmationEmail({
+                email: user.email,
+                name: user.name,
+                token: token.token,
+            });
+
+            // Guardar el usuario
+            await Promise.allSettled([user.save(), token.save()]);
+            res.send("Usuario Creado Correctamente");
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
     static confirmUser = async (req: Request, res: Response) => {
         try {
             const { token } = req.body;

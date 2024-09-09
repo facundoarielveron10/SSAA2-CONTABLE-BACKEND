@@ -80,6 +80,25 @@ router.post(
     handleInputErrors,
     UserController.changeRole
 );
+
+router.post(
+    "/create-user",
+    body("name").notEmpty().withMessage("El Nombre es Obligatorio"),
+    body("lastname").notEmpty().withMessage("El Apellido es Obligatorio"),
+    body("email").isEmail().withMessage("El Email del Usuario es Obligatorio"),
+    body("password")
+        .isLength({ min: 8 })
+        .withMessage("La Contraseña es muy corta, minimo 8 caracteres"),
+    body("passwordConfirm").custom((value, { req }) => {
+        if (value !== req.body.password) {
+            throw new Error("Las Contraseñas no son iguales");
+        }
+        return true;
+    }),
+    body("role").notEmpty().withMessage("El Rol es Obligatorio"),
+    handleInputErrors,
+    UserController.createUserWithRole
+);
 // ---- POST ---- //
 
 // ---- GET ---- //
