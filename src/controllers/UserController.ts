@@ -37,6 +37,35 @@ export class UserController {
         }
     };
 
+    static getUser = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+            const { idUser } = req.params;
+
+            const permissions = await hasPermissions(id, "EDIT_USER");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const user = await User.findById(idUser)
+                .populate({
+                    path: "role",
+                    select: "name -_id",
+                })
+                .select("-password -createdAt -updatedAt -__v");
+            if (!user) {
+                const error = new Error("El Usuario no ha sido encontrado");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            res.send(user);
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
     static createUser = async (req: Request, res: Response) => {
         try {
             const { password, email } = req.body;
@@ -77,8 +106,17 @@ export class UserController {
         }
     };
 
-    static createUserWithRole = async (req: Request, res: Response) => {
+    static createUserWithRole = async (req: CustomRequest, res: Response) => {
         try {
+            const id = req.user["id"];
+
+            const permissions = await hasPermissions(id, "CREATE_USER");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
             const { name, lastname, password, email, role } = req.body;
 
             // Prevenir usuarios duplicados
@@ -187,6 +225,7 @@ export class UserController {
 
             const token = await generateJWT({
                 id: user.id,
+                confirmed: user.confirmed,
             });
 
             const roleActions = await RoleAction.find({ role: user.role._id })
@@ -315,6 +354,65 @@ export class UserController {
             user.save();
 
             res.send("El Rol ha sido cambiado exitosamente");
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
+    static editUser = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+
+            const permissions = await hasPermissions(id, "EDIT_USER");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const { idUser, name, lastname, password, email, role } = req.body;
+
+            const userEdit = await User.findById(idUser);
+            if (!userEdit) {
+                const error = new Error("El Usuario no fue encontrado");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            userEdit.name = name;
+            userEdit.lastname = lastname;
+
+            if (password) {
+                userEdit.password = await hashPassword(password);
+            }
+
+            if (email !== userEdit.email) {
+                userEdit.email = email;
+                userEdit.confirmed = false;
+
+                const token = new Token();
+                token.token = generateToken();
+                token.user = userEdit.id;
+
+                AuthEmail.sendConfirmationEmail({
+                    email: userEdit.email,
+                    name: userEdit.name,
+                    token: token.token,
+                });
+            }
+
+            const roleUser = await Role.findOne({ name: role });
+            if (!roleUser) {
+                const error = new Error("El Rol no fue encontrado");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            if (userEdit.role !== roleUser._id) {
+                userEdit.role = roleUser.id;
+            }
+
+            userEdit.save();
+
+            res.send("Usuario actualizado correctamente");
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }

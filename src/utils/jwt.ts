@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 
 type UserPayload = {
     id: Types.ObjectId;
+    confirmed: boolean;
 };
 
 export const generateJWT = async (payload: UserPayload) => {

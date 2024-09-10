@@ -83,6 +83,7 @@ router.post(
 
 router.post(
     "/create-user",
+    authenticate,
     body("name").notEmpty().withMessage("El Nombre es Obligatorio"),
     body("lastname").notEmpty().withMessage("El Apellido es Obligatorio"),
     body("email").isEmail().withMessage("El Email del Usuario es Obligatorio"),
@@ -99,9 +100,31 @@ router.post(
     handleInputErrors,
     UserController.createUserWithRole
 );
+
+router.post(
+    "/edit-user",
+    authenticate,
+    body("name").notEmpty().withMessage("El Nombre es Obligatorio"),
+    body("lastname").notEmpty().withMessage("El Apellido es Obligatorio"),
+    body("email").isEmail().withMessage("El Email del Usuario es Obligatorio"),
+    body("password")
+        .optional({ checkFalsy: true })
+        .isLength({ min: 8 })
+        .withMessage("La Contraseña es muy corta, mínimo 8 caracteres"),
+    body("passwordConfirm").custom((value, { req }) => {
+        if (req.body.password && value !== req.body.password) {
+            throw new Error("Las Contraseñas no son iguales");
+        }
+        return true;
+    }),
+    body("role").notEmpty().withMessage("El Rol es Obligatorio"),
+    handleInputErrors,
+    UserController.editUser
+);
 // ---- POST ---- //
 
 // ---- GET ---- //
 router.get("/users", authenticate, UserController.getAllUser);
+router.get("/user/:idUser", authenticate, UserController.getUser);
 // ---- GET ---- //
 export default router;

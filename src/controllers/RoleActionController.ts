@@ -39,6 +39,10 @@ export class RoleActionController {
             }
 
             const role = await Role.findById(idRole);
+            if (!role) {
+                const error = new Error("El rol no ha sido encontrado");
+                return res.status(409).json({ errors: error.message });
+            }
 
             const actions = await RoleAction.find({ role: idRole })
                 .populate({
