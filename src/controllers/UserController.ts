@@ -27,7 +27,7 @@ export class UserController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            const users = await User.find({})
+            const users = await User.find({ active: true })
                 .populate("role")
                 .select(["id", "name", "lastname", "email", "role"]);
 
@@ -106,6 +106,33 @@ export class UserController {
         }
     };
 
+    static deleteUser = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+
+            const permissions = await hasPermissions(id, "GET_USERS");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+            const { idUser } = req.body;
+
+            const user = await User.findById(idUser);
+            if (!user) {
+                const error = new Error("El Usuario no fue encontrado");
+                return res.status(404).json({ errors: error.message });
+            }
+
+            user.active = false;
+            await user.save();
+
+            res.send("Usuario eliminado correctamente");
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
     static createUserWithRole = async (req: CustomRequest, res: Response) => {
         try {
             const id = req.user["id"];
@@ -122,8 +149,17 @@ export class UserController {
             // Prevenir usuarios duplicados
             const userExists = await User.findOne({ email });
             if (userExists) {
-                const error = new Error("El Usuario ya esta registrado");
-                return res.status(409).json({ errors: error.message });
+                if (userExists.active === false) {
+                    userExists.active = true;
+                    userExists.name = name;
+                    userExists.lastname = lastname;
+                    userExists.password = await hashPassword(password);
+                    await userExists.save();
+                    return res.send("Usuario actualizado correctamente");
+                } else {
+                    const error = new Error("El rol ya existe");
+                    return res.status(400).json({ errors: error.message });
+                }
             }
 
             // Traer el rol seleccionado
@@ -193,6 +229,11 @@ export class UserController {
 
             if (!user) {
                 const error = new Error("El usuario no fue encontrado");
+                return res.status(404).json({ errors: error.message });
+            }
+
+            if (!user.active) {
+                const error = new Error("El usuario ha sido eliminado");
                 return res.status(404).json({ errors: error.message });
             }
 
@@ -351,7 +392,7 @@ export class UserController {
             }
 
             user.role = newRole.id;
-            user.save();
+            await user.save();
 
             res.send("El Rol ha sido cambiado exitosamente");
         } catch (error) {

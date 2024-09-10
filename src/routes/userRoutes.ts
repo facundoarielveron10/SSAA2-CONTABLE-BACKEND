@@ -121,6 +121,14 @@ router.post(
     handleInputErrors,
     UserController.editUser
 );
+
+router.post(
+    "/delete-user",
+    authenticate,
+    body("idUser").notEmpty().withMessage("El ID es obligatorio"),
+    handleInputErrors,
+    UserController.deleteUser
+);
 // ---- POST ---- //
 
 // ---- GET ---- //

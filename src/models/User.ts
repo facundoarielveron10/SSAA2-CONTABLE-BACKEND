@@ -7,6 +7,7 @@ export type UserType = Document & {
     password: string;
     confirmed: boolean;
     role: Types.ObjectId;
+    active: boolean;
 };
 
 const userSchema: Schema = new Schema(
@@ -36,6 +37,11 @@ const userSchema: Schema = new Schema(
         role: {
             type: Types.ObjectId,
             ref: "Role",
+        },
+        active: {
+            type: Boolean,
+            require: true,
+            default: true,
         },
     },
     { timestamps: true }
