@@ -63,7 +63,6 @@ export class RoleActionController {
     static getAllActions = async (req: CustomRequest, res: Response) => {
         try {
             const id = req.user["id"];
-
             const permissions = await hasPermissions(id, "GET_ACTIONS");
 
             if (!permissions) {
@@ -71,9 +70,24 @@ export class RoleActionController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            const actions = await Action.find({});
+            const { page = 1, limit = 5, type } = req.query;
+            const pageNumber = parseInt(page as string) || 1;
+            const pageSize = parseInt(limit as string) || 5;
+            const skip = (pageNumber - 1) * pageSize;
 
-            res.send(actions);
+            const filter = type ? { type } : {};
+
+            const actions = await Action.find(filter)
+                .skip(skip)
+                .limit(pageSize);
+
+            const totalActions = await Action.countDocuments(filter);
+
+            res.json({
+                actions,
+                totalPages: Math.ceil(totalActions / pageSize),
+                currentPage: pageNumber,
+            });
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }
