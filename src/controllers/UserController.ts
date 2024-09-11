@@ -4,7 +4,6 @@ import {
     checkPassword,
     hashPassword,
     hasPermissions,
-    idUser,
     roleUser,
 } from "../utils/auth";
 import Token from "../models/Token";
@@ -19,7 +18,6 @@ export class UserController {
     static getAllUser = async (req: CustomRequest, res: Response) => {
         try {
             const id = req.user["id"];
-
             const permissions = await hasPermissions(id, "GET_USERS");
 
             if (!permissions) {
@@ -27,11 +25,28 @@ export class UserController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            const users = await User.find({ active: true })
-                .populate("role")
-                .select(["id", "name", "lastname", "email", "role"]);
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+            const role = (req.query.role as string) || null;
 
-            res.send(users);
+            const query: any = { active: true };
+            if (role) {
+                const roleDocument = await Role.findOne({ name: role });
+                query.role = roleDocument ? roleDocument._id : null;
+            }
+
+            const users = await User.find(query)
+                .populate("role")
+                .select(["id", "name", "lastname", "email", "role"])
+                .skip((page - 1) * limit)
+                .limit(limit);
+
+            const totalUsers = await User.countDocuments(query);
+
+            res.send({
+                users,
+                totalUsers,
+            });
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }
