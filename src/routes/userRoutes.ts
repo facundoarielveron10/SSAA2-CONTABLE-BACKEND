@@ -137,6 +137,16 @@ router.post(
     handleInputErrors,
     UserController.activeUser
 );
+
+router.post(
+    "/search-users",
+    authenticate,
+    body("search")
+        .notEmpty()
+        .withMessage("Debe proporcionar un término de búsqueda"),
+    handleInputErrors,
+    UserController.searchUser
+);
 // ---- POST ---- //
 
 // ---- GET ---- //

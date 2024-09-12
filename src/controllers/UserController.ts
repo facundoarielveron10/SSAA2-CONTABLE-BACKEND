@@ -492,4 +492,60 @@ export class UserController {
             res.status(500).json({ errors: "Hubo un error" });
         }
     };
+
+    static searchUser = async (req: CustomRequest, res: Response) => {
+        try {
+            // Obtener el ID del usuario autenticado
+            const id = req.user["id"];
+
+            // Verificar permisos
+            const permissions = await hasPermissions(id, "GET_USERS");
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const { search } = req.body;
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+            const role = (req.query.role as string) || null;
+
+            // Validar que el término de búsqueda no esté vacío
+            if (!search) {
+                const error = new Error(
+                    "Debe proporcionar un término de búsqueda"
+                );
+                return res.status(400).json({ errors: error.message });
+            }
+
+            const query: any = {
+                $or: [
+                    { name: { $regex: search, $options: "i" } },
+                    { lastname: { $regex: search, $options: "i" } },
+                    { email: { $regex: search, $options: "i" } },
+                ],
+            };
+
+            if (role) {
+                const roleDocument = await Role.findOne({ name: role });
+                query.role = roleDocument ? roleDocument._id : null;
+            }
+
+            const users = await User.find(query)
+                .populate("role")
+                .select(["id", "name", "lastname", "email", "role", "active"])
+                .skip((page - 1) * limit)
+                .limit(limit);
+
+            const totalUsers = await User.countDocuments(query);
+
+            res.json({
+                users,
+                totalUsers,
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
 }
