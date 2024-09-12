@@ -115,16 +115,8 @@ export class RoleActionController {
 
             const roleExist = await Role.findOne({ name: name });
             if (roleExist) {
-                if (roleExist.active === false) {
-                    roleExist.active = true;
-                    roleExist.nameDescriptive = nameDescriptive;
-                    roleExist.description = description;
-                    await roleExist.save();
-                    return res.send("Rol actualizado correctamente");
-                } else {
-                    const error = new Error("El rol ya existe");
-                    return res.status(400).json({ errors: error.message });
-                }
+                const error = new Error("El rol ya existe");
+                return res.status(400).json({ errors: error.message });
             }
 
             const newRole = new Role({
@@ -249,7 +241,7 @@ export class RoleActionController {
             const id = req.user["id"];
             const { idRole } = req.body;
 
-            const permissions = await hasPermissions(id, "DELETE_ROLE");
+            const permissions = await hasPermissions(id, "ACTIVE_ROLE");
             if (!permissions) {
                 const error = new Error("El Usuario no tiene permisos");
                 return res.status(409).json({ errors: error.message });

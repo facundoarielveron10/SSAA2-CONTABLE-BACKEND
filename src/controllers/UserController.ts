@@ -192,17 +192,8 @@ export class UserController {
             // Prevenir usuarios duplicados
             const userExists = await User.findOne({ email });
             if (userExists) {
-                if (userExists.active === false) {
-                    userExists.active = true;
-                    userExists.name = name;
-                    userExists.lastname = lastname;
-                    userExists.password = await hashPassword(password);
-                    await userExists.save();
-                    return res.send("Usuario actualizado correctamente");
-                } else {
-                    const error = new Error("El rol ya existe");
-                    return res.status(400).json({ errors: error.message });
-                }
+                const error = new Error("El rol ya existe");
+                return res.status(400).json({ errors: error.message });
             }
 
             // Traer el rol seleccionado
