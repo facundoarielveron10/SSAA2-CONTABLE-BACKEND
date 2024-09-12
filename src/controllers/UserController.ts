@@ -29,7 +29,7 @@ export class UserController {
             const limit = parseInt(req.query.limit as string) || 10;
             const role = (req.query.role as string) || null;
 
-            const query: any = { active: true };
+            const query: any = {};
             if (role) {
                 const roleDocument = await Role.findOne({ name: role });
                 query.role = roleDocument ? roleDocument._id : null;
@@ -37,7 +37,7 @@ export class UserController {
 
             const users = await User.find(query)
                 .populate("role")
-                .select(["id", "name", "lastname", "email", "role"])
+                .select(["id", "name", "lastname", "email", "role", "active"])
                 .skip((page - 1) * limit)
                 .limit(limit);
 
@@ -72,7 +72,7 @@ export class UserController {
                 .select("-password -createdAt -updatedAt -__v");
             if (!user) {
                 const error = new Error("El Usuario no ha sido encontrado");
-                return res.status(409).json({ errors: error.message });
+                return res.status(404).json({ errors: error.message });
             }
 
             res.send(user);
@@ -148,6 +148,34 @@ export class UserController {
         }
     };
 
+    static activeUser = async (req: CustomRequest, res: Response) => {
+        const id = req.user["id"];
+        const permissions = await hasPermissions(id, "ACTIVE_USER");
+
+        if (!permissions) {
+            const error = new Error("El Usuario no tiene permisos");
+            return res.status(409).json({ errors: error.message });
+        }
+
+        const { idUser } = req.body;
+
+        const user = await User.findById(idUser);
+        if (!user) {
+            const error = new Error("El Usuario no fue encontrado");
+            return res.status(404).json({ errors: error.message });
+        }
+
+        if (user.active) {
+            const error = new Error("El Usuario no ha sido eliminado");
+            return res.status(400).json({ errors: error.message });
+        }
+
+        user.active = true;
+        await user.save();
+
+        res.send("Usuario activado correctamente");
+    };
+
     static createUserWithRole = async (req: CustomRequest, res: Response) => {
         try {
             const id = req.user["id"];
@@ -181,7 +209,7 @@ export class UserController {
             const roleUser = await Role.findOne({ name: role });
             if (!roleUser) {
                 const error = new Error("El Rol no fue encontrado");
-                return res.status(409).json({ errors: error.message });
+                return res.status(404).json({ errors: error.message });
             }
 
             // Crear un usuario
@@ -431,7 +459,7 @@ export class UserController {
             const userEdit = await User.findById(idUser);
             if (!userEdit) {
                 const error = new Error("El Usuario no fue encontrado");
-                return res.status(409).json({ errors: error.message });
+                return res.status(404).json({ errors: error.message });
             }
 
             userEdit.name = name;
@@ -459,7 +487,7 @@ export class UserController {
             const roleUser = await Role.findOne({ name: role });
             if (!roleUser) {
                 const error = new Error("El Rol no fue encontrado");
-                return res.status(409).json({ errors: error.message });
+                return res.status(404).json({ errors: error.message });
             }
 
             if (userEdit.role !== roleUser._id) {
