@@ -25,8 +25,10 @@ export class UserController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            const page = parseInt(req.query.page as string) || 1;
-            const limit = parseInt(req.query.limit as string) || 10;
+            const { page = 1, limit = 10 } = req.query;
+            const pageNumber = parseInt(page as string) || 1;
+            const pageSize = parseInt(limit as string) || 5;
+            const skip = (pageNumber - 1) * pageSize;
             const role = (req.query.role as string) || null;
 
             const query: any = {};
@@ -38,14 +40,14 @@ export class UserController {
             const users = await User.find(query)
                 .populate("role")
                 .select(["id", "name", "lastname", "email", "role", "active"])
-                .skip((page - 1) * limit)
-                .limit(limit);
+                .skip(skip)
+                .limit(pageSize);
 
             const totalUsers = await User.countDocuments(query);
 
             res.send({
                 users,
-                totalUsers,
+                totalPages: Math.ceil(totalUsers / pageSize),
             });
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
@@ -506,8 +508,10 @@ export class UserController {
             }
 
             const { search } = req.body;
-            const page = parseInt(req.query.page as string) || 1;
-            const limit = parseInt(req.query.limit as string) || 10;
+            const { page = 1, limit = 5 } = req.query;
+            const pageNumber = parseInt(page as string) || 1;
+            const pageSize = parseInt(limit as string) || 5;
+            const skip = (pageNumber - 1) * pageSize;
             const role = (req.query.role as string) || null;
 
             // Validar que el término de búsqueda no esté vacío
@@ -534,14 +538,14 @@ export class UserController {
             const users = await User.find(query)
                 .populate("role")
                 .select(["id", "name", "lastname", "email", "role", "active"])
-                .skip((page - 1) * limit)
-                .limit(limit);
+                .skip(skip)
+                .limit(pageSize);
 
             const totalUsers = await User.countDocuments(query);
 
             res.json({
                 users,
-                totalUsers,
+                totalPages: Math.ceil(totalUsers / pageSize),
             });
         } catch (error) {
             console.error(error);

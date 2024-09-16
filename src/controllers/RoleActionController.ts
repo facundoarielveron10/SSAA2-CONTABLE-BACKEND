@@ -86,7 +86,6 @@ export class RoleActionController {
             res.json({
                 actions,
                 totalPages: Math.ceil(totalActions / pageSize),
-                currentPage: pageNumber,
             });
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
