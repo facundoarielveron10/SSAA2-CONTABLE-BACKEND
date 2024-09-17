@@ -39,7 +39,15 @@ export class UserController {
 
             const users = await User.find(query)
                 .populate("role")
-                .select(["id", "name", "lastname", "email", "role", "active"])
+                .select([
+                    "id",
+                    "name",
+                    "lastname",
+                    "email",
+                    "role",
+                    "active",
+                    "adminConfirmed",
+                ])
                 .skip(skip)
                 .limit(pageSize);
 
@@ -258,6 +266,38 @@ export class UserController {
         }
     };
 
+    static confirmAdminUser = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+
+            const permissions = await hasPermissions(id, "CONFIRM_USER");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const { idUser, confirmUser } = req.body;
+
+            const user = await User.findById(idUser);
+            if (!user) {
+                const error = new Error("El Usuario no fue encontrado");
+                return res.status(404).json({ errors: error.message });
+            }
+
+            if (confirmUser) {
+                user.adminConfirmed = true;
+                await user.save();
+                res.send("Cuenta confirmada correctamente");
+            } else {
+                await user.deleteOne({});
+                res.send("Cuenta denegada correctamente");
+            }
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
     static login = async (req: Request, res: Response) => {
         try {
             const { email, password } = req.body;
@@ -286,6 +326,13 @@ export class UserController {
                 await token.save();
                 const error = new Error(
                     "El usuario no esta confirmado, hemos enviado un email de confirmacion"
+                );
+                return res.status(401).json({ errors: error.message });
+            }
+
+            if (!user.adminConfirmed) {
+                const error = new Error(
+                    "El usuario no esta confirmado por un administrador"
                 );
                 return res.status(401).json({ errors: error.message });
             }

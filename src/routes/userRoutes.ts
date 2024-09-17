@@ -139,6 +139,17 @@ router.post(
 );
 
 router.post(
+    "/confirm-admin",
+    authenticate,
+    body("idUser").notEmpty().withMessage("El ID es obligatorio"),
+    body("confirmUser")
+        .isBoolean()
+        .withMessage("El confirmar usuario es obligatorio"),
+    handleInputErrors,
+    UserController.confirmAdminUser
+);
+
+router.post(
     "/search-users",
     authenticate,
     body("search")

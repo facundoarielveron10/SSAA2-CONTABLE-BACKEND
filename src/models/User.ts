@@ -6,6 +6,7 @@ export type UserType = Document & {
     email: string;
     password: string;
     confirmed: boolean;
+    adminConfirmed: boolean;
     role: Types.ObjectId;
     active: boolean;
 };
@@ -31,6 +32,10 @@ const userSchema: Schema = new Schema(
             required: true,
         },
         confirmed: {
+            type: Boolean,
+            default: false,
+        },
+        adminConfirmed: {
             type: Boolean,
             default: false,
         },
