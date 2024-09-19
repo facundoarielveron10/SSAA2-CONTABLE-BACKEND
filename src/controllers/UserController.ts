@@ -67,7 +67,7 @@ export class UserController {
             const id = req.user["id"];
             const { idUser } = req.params;
 
-            const permissions = await hasPermissions(id, "EDIT_USER");
+            const permissions = await hasPermissions(id, "GET_USERS");
 
             if (!permissions) {
                 const error = new Error("El Usuario no tiene permisos");

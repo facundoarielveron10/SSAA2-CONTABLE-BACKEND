@@ -14,10 +14,12 @@ export class AccountController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            let { name, description, type, balance } = req.body;
+            let { name, description, type } = req.body;
 
-            const nameAccount = name;
-            name = name.toLowerCase();
+            const nameAccount = name
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "");
+            name = nameAccount.toLowerCase();
 
             const accountExist = await Account.findOne({ name });
             if (accountExist) {
@@ -25,17 +27,12 @@ export class AccountController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            if (balance < 0) {
-                const error = new Error("El Saldo no puede ser negativo");
-                return res.status(403).json({ errors: error.message });
-            }
-
             const newAccount = new Account({
                 name,
                 nameAccount,
                 description,
                 type,
-                balance,
+                balance: 0,
             });
             await newAccount.save();
 
@@ -63,7 +60,7 @@ export class AccountController {
             const query: any = {};
 
             const accounts = await Account.find(query)
-                .select("-name -__v")
+                .select("-__v")
                 .skip(skip)
                 .limit(pageSize);
 
@@ -73,6 +70,30 @@ export class AccountController {
                 accounts,
                 totalPages: Math.ceil(totalAccounts / pageSize),
             });
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
+    static getAccount = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+            const { idAccount } = req.params;
+
+            const permissions = await hasPermissions(id, "GET_ACCOUNTS");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const account = await Account.findById(idAccount).select("-__v");
+            if (!account) {
+                const error = new Error("El Usuario no ha sido encontrado");
+                return res.status(404).json({ errors: error.message });
+            }
+
+            res.send(account);
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }
