@@ -104,6 +104,7 @@ router.post(
 router.post(
     "/edit-user",
     authenticate,
+    body("idUser").notEmpty().withMessage("El ID es Obligatorio"),
     body("name").notEmpty().withMessage("El Nombre es Obligatorio"),
     body("lastname").notEmpty().withMessage("El Apellido es Obligatorio"),
     body("email").isEmail().withMessage("El Email del Usuario es Obligatorio"),

@@ -42,6 +42,40 @@ export class AccountController {
         }
     };
 
+    static editAccount = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+            const permissions = await hasPermissions(id, "EDIT_ACCOUNT");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            let { idAccount, name, description } = req.body;
+
+            const account = await Account.findById(idAccount);
+            if (!account) {
+                const error = new Error("La Cuenta no ha sido encontrada");
+                return res.status(404).json({ errors: error.message });
+            }
+
+            const nameAccount = name
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "");
+            name = nameAccount.toLowerCase();
+
+            account.name = name;
+            account.nameAccount = nameAccount;
+            account.description = description;
+            account.save();
+
+            res.send("Cuenta actualizada correctamente");
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
     static getAllAccount = async (req: CustomRequest, res: Response) => {
         try {
             const id = req.user["id"];
