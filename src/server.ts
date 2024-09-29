@@ -6,6 +6,7 @@ import { connectDB } from "./config/database";
 import userRoutes from "./routes/userRoutes";
 import roleActionRoutes from "./routes/roleActionRoutes";
 import accountRoutes from "./routes/accountRoutes";
+import accountSeatRoutes from "./routes/accountSeatRoutes";
 
 dotenv.config();
 
@@ -20,5 +21,6 @@ app.use(express.json());
 app.use("/api/user", userRoutes);
 app.use("/api/role-action", roleActionRoutes);
 app.use("/api/account", accountRoutes);
+app.use("/api/account-seat", accountSeatRoutes);
 
 export default app;

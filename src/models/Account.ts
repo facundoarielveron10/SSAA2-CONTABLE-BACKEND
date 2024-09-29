@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 
 export type AccountType = Document & {
     name: string;
@@ -6,6 +6,8 @@ export type AccountType = Document & {
     description: string;
     type: string;
     balance: number;
+    account: Types.ObjectId;
+    code: number;
 };
 
 const accountSchema: Schema = new Schema({
@@ -31,6 +33,15 @@ const accountSchema: Schema = new Schema({
         type: Number,
         required: true,
         default: 0,
+    },
+    account: {
+        type: Types.ObjectId,
+        ref: "Account",
+        default: null,
+    },
+    code: {
+        type: Number,
+        require: true,
     },
 });
 

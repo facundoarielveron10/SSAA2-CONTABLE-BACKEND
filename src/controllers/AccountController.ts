@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { hasPermissions } from "../utils/auth";
+import { codeType } from "../utils/account";
 import { CustomRequest } from "../middleware/authenticate";
 import Account from "../models/Account";
 
@@ -14,7 +15,7 @@ export class AccountController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            let { name, description, type } = req.body;
+            let { name, description, type, accountId } = req.body;
 
             const nameAccount = name
                 .normalize("NFD")
@@ -27,12 +28,21 @@ export class AccountController {
                 return res.status(409).json({ errors: error.message });
             }
 
+            let accountName = null;
+            const accountRef = await Account.findById(accountId);
+            if (accountRef) {
+                accountName = accountRef.name;
+            }
+            const code = await codeType(type, accountName);
+
             const newAccount = new Account({
                 name,
                 nameAccount,
                 description,
                 type,
                 balance: 0,
+                account: accountId,
+                code,
             });
             await newAccount.save();
 
