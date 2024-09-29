@@ -1,8 +1,8 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import Action from "../models/Action";
 import Role from "../models/Role";
 import RoleAction from "../models/RoleAction";
-import { hasPermissions, roleAdmin, roleUser } from "../utils/auth";
+import { hasPermissions, roleUser } from "../utils/auth";
 import { CustomRequest } from "../middleware/authenticate";
 import User from "../models/User";
 
