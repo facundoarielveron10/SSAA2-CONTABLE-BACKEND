@@ -60,3 +60,11 @@ export const codeType = async (type: string, accountName: string | null) => {
 
     return newCodeForType;
 };
+
+export const isValidValues = async (debe: number, haber: number) => {
+    if (debe > 0 && haber > 0) {
+        return debe - haber === 0;
+    }
+
+    return false;
+};

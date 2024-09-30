@@ -1,6 +1,6 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import { hasPermissions } from "../utils/auth";
-import { codeType } from "../utils/account";
+import { codeType } from "../utils/accountSeat";
 import { CustomRequest } from "../middleware/authenticate";
 import Account from "../models/Account";
 

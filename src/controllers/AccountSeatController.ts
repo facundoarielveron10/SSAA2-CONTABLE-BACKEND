@@ -1,9 +1,10 @@
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import { hasPermissions } from "../utils/auth";
 import { CustomRequest } from "../middleware/authenticate";
 import Account from "../models/Account";
 import Seat from "../models/Seat";
 import AccountSeat from "../models/AccountSeat";
+import { isValidValues } from "../utils/accountSeat";
 
 export class AccountSeatController {
     static createSeat = async (req: CustomRequest, res: Response) => {
@@ -24,6 +25,19 @@ export class AccountSeatController {
                 return res.status(404).json({ errors: error.message });
             }
 
+            const son = await Account.findOne({ account: account._id });
+            if (son) {
+                const error = new Error("La cuenta no puede recibir saldo");
+                return res.status(403).json({ errors: error.message });
+            }
+
+            if (!isValidValues(debe, haber)) {
+                const error = new Error("El Debe y el Haber no son posibles");
+                return res.status(403).json({ errors: error.message });
+            }
+
+            const balanceAccount = account.balance;
+
             const seat = new Seat({
                 date,
                 description,
@@ -35,7 +49,10 @@ export class AccountSeatController {
                 seat: seat._id,
                 debe,
                 haber,
+                balance: balanceAccount,
             });
+
+            await Promise.allSettled([seat.save(), accountSeat.save()]);
             res.send("Asiento creado correctamente");
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
