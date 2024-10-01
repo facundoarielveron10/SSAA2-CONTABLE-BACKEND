@@ -29,9 +29,11 @@ export class AccountController {
             }
 
             let accountName = null;
-            const accountRef = await Account.findById(accountId);
-            if (accountRef) {
-                accountName = accountRef.name;
+            if (accountId) {
+                const { nameAccount } = await Account.findById(
+                    accountId
+                ).select("nameAccount");
+                accountName = nameAccount;
             }
             const code = await codeType(type, accountName);
 
@@ -96,24 +98,35 @@ export class AccountController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            const { page = 1, limit = 5 } = req.query;
-            const pageNumber = parseInt(page as string) || 1;
-            const pageSize = parseInt(limit as string) || 5;
-            const skip = (pageNumber - 1) * pageSize;
+            const { page, limit } = req.query;
 
+            let accounts = null;
             const query: any = {};
 
-            const accounts = await Account.find(query)
-                .select("-__v")
-                .skip(skip)
-                .limit(pageSize);
+            if (page && limit) {
+                const pageNumber = parseInt(page as string) || 1;
+                const pageSize = parseInt(limit as string) || 5;
+                const skip = (pageNumber - 1) * pageSize;
 
-            const totalAccounts = await Account.countDocuments(query);
+                accounts = await Account.find(query)
+                    .select("-__v")
+                    .skip(skip)
+                    .limit(pageSize);
 
-            res.send({
-                accounts,
-                totalPages: Math.ceil(totalAccounts / pageSize),
-            });
+                const totalAccounts = await Account.countDocuments(query);
+
+                res.send({
+                    accounts,
+                    totalPages: Math.ceil(totalAccounts / pageSize),
+                });
+            } else {
+                accounts = await Account.find(query).select("-__v");
+
+                res.send({
+                    accounts,
+                    totalPages: 1,
+                });
+            }
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }
