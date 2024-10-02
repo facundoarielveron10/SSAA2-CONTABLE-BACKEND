@@ -30,6 +30,11 @@ router.post(
 
 // ---- GET ---- //
 router.get("/accounts", authenticate, AccountController.getAllAccount);
+router.get(
+    "/accounts/childless",
+    authenticate,
+    AccountController.getAccountsChildless
+);
 router.get("/account/:idAccount", authenticate, AccountController.getAccount);
 // ---- GET ---- //
 export default router;

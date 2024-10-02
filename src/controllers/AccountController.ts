@@ -132,6 +132,30 @@ export class AccountController {
         }
     };
 
+    static getAccountsChildless = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+            const permissions = await hasPermissions(id, "GET_ACCOUNTS");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(403).json({ errors: error.message });
+            }
+
+            const childAccounts = await Account.distinct("account", {
+                account: { $ne: null },
+            });
+
+            const childlessAccounts = await Account.find({
+                _id: { $nin: childAccounts },
+            });
+
+            res.send(childlessAccounts);
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
     static getAccount = async (req: CustomRequest, res: Response) => {
         try {
             const id = req.user["id"];
