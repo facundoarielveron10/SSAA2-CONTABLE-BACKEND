@@ -10,11 +10,11 @@ const router = Router();
 router.post(
     "/create-seat",
     authenticate,
-    body("accountId").notEmpty().withMessage("La Cuenta es Obligatoria"),
-    body("date").isDate().notEmpty().withMessage("La Fecha es Obligatoria"),
     body("description").notEmpty().withMessage("La Descricion es Obligatoria"),
-    body("debe").notEmpty().withMessage("El Debe es Obligatorio"),
-    body("haber").notEmpty().withMessage("El Haber es Obligatorio"),
+    body("seats")
+        .isArray()
+        .notEmpty()
+        .withMessage("Los Asientos son obligatorios"),
     handleInputErrors,
     AccountSeatController.createSeat
 );

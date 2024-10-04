@@ -28,14 +28,12 @@ export class AccountController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            let accountName = null;
+            let parentAccountId = null;
             if (accountId) {
-                const { nameAccount } = await Account.findById(
-                    accountId
-                ).select("nameAccount");
-                accountName = nameAccount;
+                const accountParent = await Account.findById(accountId);
+                parentAccountId = accountParent._id;
             }
-            const code = await codeType(type, accountName);
+            const code = await codeType(type, parentAccountId);
 
             const newAccount = new Account({
                 name,

@@ -1,7 +1,9 @@
 import Account from "../models/Account";
 
-export const codeType = async (type: string, accountName: string | null) => {
-    // Mapeo de tipos y códigos base, incluyendo cuentas específicas por nombre
+export const codeType = async (
+    type: string,
+    parentAccountId: string | null
+) => {
     const baseCodes: { [key: string]: number } = {
         Activo: 1000,
         Pasivo: 2000,
@@ -10,52 +12,64 @@ export const codeType = async (type: string, accountName: string | null) => {
         PN: 5000,
     };
 
-    // Cuentas principales y sus códigos iniciales basados en el nombre
-    const specificAccounts: { [key: string]: number } = {
-        caja: 1100, // Caja
-        banco: 1200, // Banco
-        proveedores: 2100, // Proveedores
-        ventas: 3100, // Ventas
-        sueldos: 4100, // Sueldos
-        "capital social": 5100, // Capital Social
-    };
+    // Si tiene parentAccountId, buscamos el código del padre
+    if (parentAccountId) {
+        // Buscar la cuenta padre
+        const parentAccount = await Account.findById(parentAccountId);
+        if (!parentAccount) {
+            throw new Error(
+                `Cuenta padre con ID ${parentAccountId} no encontrada.`
+            );
+        }
 
-    // Si el accountName no es null y es una de las cuentas específicas
-    if (accountName && specificAccounts[accountName]) {
-        const baseCode = specificAccounts[accountName];
+        const parentCode = parentAccount.code;
 
-        // Buscar la última cuenta de esta cuenta específica en la base de datos
-        const lastAccount = await Account.find({
-            code: { $gte: baseCode, $lt: baseCode + 100 },
+        // Buscar si existen cuentas hijas directas (nivel +10)
+        const lastDirectChildAccount = await Account.find({
+            account: parentAccountId,
+            code: { $gte: parentCode + 10, $lt: parentCode + 100 },
         })
             .sort({ code: -1 })
             .limit(1);
 
-        // Si ya existe una cuenta, incrementar el código
-        const newCode = lastAccount.length
-            ? lastAccount[0].code + 1
-            : baseCode + 1;
+        if (lastDirectChildAccount.length) {
+            // Si ya hay cuentas hijas directas, aumentamos en 10 para el siguiente hijo directo
+            const newDirectChildCode =
+                Math.floor(lastDirectChildAccount[0].code / 10) * 10 + 10;
+            return newDirectChildCode;
+        }
 
-        return newCode;
+        // Si no hay cuentas hijas directas, buscamos subcuentas (nivel +1)
+        const lastSubAccount = await Account.find({
+            account: parentAccountId,
+            code: { $gte: parentCode, $lt: parentCode + 10 },
+        })
+            .sort({ code: -1 })
+            .limit(1);
+
+        const newSubAccountCode = lastSubAccount.length
+            ? lastSubAccount[0].code + 1
+            : parentCode + 1;
+
+        return newSubAccountCode;
     }
 
-    // Si el accountName es null o no es una cuenta específica, asignar un nuevo código según el tipo de cuenta
+    // Si no tiene parentAccountId, es una cuenta de nivel superior
     const baseCode = baseCodes[type];
 
     if (!baseCode) {
         throw new Error(`Tipo de cuenta no válido: ${type}`);
     }
 
-    // Buscar la última cuenta de este tipo en la base de datos
+    // Buscar la última cuenta de este tipo de nivel superior
     const lastAccountForType = await Account.find({
         code: { $gte: baseCode, $lt: baseCode + 1000 },
     })
         .sort({ code: -1 })
         .limit(1);
 
-    // Si ya existe una cuenta de este tipo, incrementar el código
     const newCodeForType = lastAccountForType.length
-        ? lastAccountForType[0].code + 100
+        ? Math.floor(lastAccountForType[0].code / 100) * 100 + 100
         : baseCode + 100;
 
     return newCodeForType;
