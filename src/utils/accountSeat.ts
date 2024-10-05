@@ -1,5 +1,15 @@
 import Account from "../models/Account";
 
+interface Seat {
+    debe: number;
+    haber: number;
+}
+
+interface Totals {
+    debe: number;
+    haber: number;
+}
+
 export const codeType = async (
     type: string,
     parentAccountId: string | null
@@ -75,10 +85,21 @@ export const codeType = async (
     return newCodeForType;
 };
 
-export const isValidValues = async (debe: number, haber: number) => {
+export const isValidValues = (debe: number, haber: number) => {
     if (debe > 0 && haber > 0) {
         return debe - haber === 0;
     }
 
     return false;
+};
+
+export const getTotalsDebeHaber = (seats: Seat[]): Totals => {
+    return seats.reduce<Totals>(
+        (totals, seat) => {
+            totals.debe += seat.debe;
+            totals.haber += seat.haber;
+            return totals;
+        },
+        { debe: 0, haber: 0 }
+    );
 };
