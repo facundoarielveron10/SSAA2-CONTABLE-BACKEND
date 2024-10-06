@@ -114,4 +114,101 @@ export class AccountSeatController {
             res.status(500).json({ errors: "Hubo un error" });
         }
     };
+
+    static getDiary = async (req: CustomRequest, res: Response) => {
+        try {
+            // OBTENEMOS EL ID DEL USUARIO AUTENTICADO
+            const id = req.user["id"];
+
+            // VERIFICAMOS LOS PERMISOS DEL USUARIO AUTENTICADO
+            const permissions = await hasPermissions(id, "GET_DIARY");
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            // OBTENER PÁGINA Y LÍMITE DE LOS QUERY PARAMS
+            const { page, limit } = req.query;
+
+            // PARSEAR PAGE Y LIMIT A NÚMEROS, ESTABLECER VALORES POR DEFECTO SI NO SE PROPORCIONAN
+            const pageNumber = parseInt(page as string) || 1;
+            const pageSize = parseInt(limit as string) || 5;
+            const skip = (pageNumber - 1) * pageSize;
+
+            // REALIZAMOS LA CONSULTA DE AGREGACIÓN CON PAGINACIÓN
+            const results = await AccountSeat.aggregate([
+                {
+                    $lookup: {
+                        from: "seats",
+                        localField: "seat",
+                        foreignField: "_id",
+                        as: "seat",
+                    },
+                },
+                { $unwind: "$seat" },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "seat.user",
+                        foreignField: "_id",
+                        as: "user",
+                    },
+                },
+                { $unwind: "$user" },
+                {
+                    $lookup: {
+                        from: "accounts",
+                        localField: "account",
+                        foreignField: "_id",
+                        as: "account",
+                    },
+                },
+                { $unwind: "$account" },
+                {
+                    $project: {
+                        seatId: "$seat._id",
+                        seat: {
+                            date: "$seat.date",
+                            description: "$seat.description",
+                            user: "$user.email",
+                        },
+                        accountSeat: {
+                            account: "$account.nameAccount",
+                            debe: "$debe",
+                            haber: "$haber",
+                        },
+                    },
+                },
+                {
+                    $group: {
+                        _id: "$seatId",
+                        seat: { $first: "$seat" },
+                        accountSeats: { $push: "$accountSeat" },
+                    },
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        seat: 1,
+                        accountSeats: 1,
+                    },
+                },
+                { $skip: skip },
+                { $limit: pageSize },
+            ]);
+
+            // CALCULAR EL NÚMERO TOTAL DE DOCUMENTOS
+            const totalSeats = await AccountSeat.countDocuments();
+
+            // DEVOLVER LOS RESULTADOS CON LA INFORMACIÓN DE PÁGINAS
+            res.send({
+                seats: results,
+                totalPages: Math.ceil(totalSeats / pageSize),
+                currentPage: pageNumber,
+            });
+        } catch (error) {
+            // ENVIAMOS EL MENSAJE DE ERROR
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
 }

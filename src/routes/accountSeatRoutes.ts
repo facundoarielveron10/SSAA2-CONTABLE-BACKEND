@@ -21,6 +21,7 @@ router.post(
 // ---- POST ---- //
 
 // ---- GET ---- //
+router.get("/diary", authenticate, AccountSeatController.getDiary);
 // ---- GET ---- //
 
 export default router;
