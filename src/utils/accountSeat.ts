@@ -22,9 +22,8 @@ export const codeType = async (
         PN: 5000,
     };
 
-    // Si tiene parentAccountId, buscamos el código del padre
     if (parentAccountId) {
-        // Buscar la cuenta padre
+        // Si hay un padre, obtenemos el código de la cuenta padre
         const parentAccount = await Account.findById(parentAccountId);
         if (!parentAccount) {
             throw new Error(
@@ -34,55 +33,48 @@ export const codeType = async (
 
         const parentCode = parentAccount.code;
 
-        // Buscar si existen cuentas hijas directas (nivel +10)
-        const lastDirectChildAccount = await Account.find({
-            account: parentAccountId,
-            code: { $gte: parentCode + 10, $lt: parentCode + 100 },
+        // Buscar subcuentas del padre en múltiplos de 10 o múltiplos de 1 si es subsubcuenta
+        const lastSubAccount = await Account.find({
+            account: parentAccountId, // Filtramos por cuentas que tengan el mismo padre
         })
-            .sort({ code: -1 })
+            .sort({ code: -1 }) // Ordenamos por el código en forma descendente
             .limit(1);
 
-        if (lastDirectChildAccount.length) {
-            // Si ya hay cuentas hijas directas, aumentamos en 10 para el siguiente hijo directo
-            const newDirectChildCode =
-                Math.floor(lastDirectChildAccount[0].code / 10) * 10 + 10;
-            return newDirectChildCode;
+        if (lastSubAccount.length) {
+            // Si ya hay subcuentas, incrementamos el código de la última hija
+            const lastSubCode = lastSubAccount[0].code;
+
+            // Si el código del padre termina en "00", la siguiente subcuenta será en múltiplos de 10
+            if (parentCode % 100 === 0) {
+                return lastSubCode + 10;
+            } else {
+                // Si el padre no está en múltiplos de 100, la siguiente subcuenta será en múltiplos de 1
+                return lastSubCode + 1;
+            }
+        } else {
+            // Si no hay subcuentas, asignamos el primer código hijo: 10 o 1
+            return parentCode % 100 === 0 ? parentCode + 10 : parentCode + 1;
+        }
+    } else {
+        // Si no hay cuenta padre, asignar código de nivel superior en bloques de 100
+        const baseCode = baseCodes[type];
+
+        if (!baseCode) {
+            throw new Error(`Tipo de cuenta no válido: ${type}`);
         }
 
-        // Si no hay cuentas hijas directas, buscamos subcuentas (nivel +1)
-        const lastSubAccount = await Account.find({
-            account: parentAccountId,
-            code: { $gte: parentCode, $lt: parentCode + 10 },
+        const lastAccountForType = await Account.find({
+            code: { $gte: baseCode, $lt: baseCode + 1000 },
         })
             .sort({ code: -1 })
             .limit(1);
 
-        const newSubAccountCode = lastSubAccount.length
-            ? lastSubAccount[0].code + 1
-            : parentCode + 1;
+        const newCodeForType = lastAccountForType.length
+            ? Math.floor(lastAccountForType[0].code / 100) * 100 + 100
+            : baseCode + 100;
 
-        return newSubAccountCode;
+        return newCodeForType;
     }
-
-    // Si no tiene parentAccountId, es una cuenta de nivel superior
-    const baseCode = baseCodes[type];
-
-    if (!baseCode) {
-        throw new Error(`Tipo de cuenta no válido: ${type}`);
-    }
-
-    // Buscar la última cuenta de este tipo de nivel superior
-    const lastAccountForType = await Account.find({
-        code: { $gte: baseCode, $lt: baseCode + 1000 },
-    })
-        .sort({ code: -1 })
-        .limit(1);
-
-    const newCodeForType = lastAccountForType.length
-        ? Math.floor(lastAccountForType[0].code / 100) * 100 + 100
-        : baseCode + 100;
-
-    return newCodeForType;
 };
 
 export const isValidValues = (debe: number, haber: number) => {

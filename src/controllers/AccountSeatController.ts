@@ -130,13 +130,12 @@ export class AccountSeatController {
             // OBTENER PÁGINA Y LÍMITE DE LOS QUERY PARAMS
             const { page, limit } = req.query;
 
-            // PARSEAR PAGE Y LIMIT A NÚMEROS, ESTABLECER VALORES POR DEFECTO SI NO SE PROPORCIONAN
-            const pageNumber = parseInt(page as string) || 1;
-            const pageSize = parseInt(limit as string) || 5;
-            const skip = (pageNumber - 1) * pageSize;
+            // PARSEAR PAGE Y LIMIT A NÚMEROS
+            const pageNumber = parseInt(page as string);
+            const pageSize = parseInt(limit as string);
 
-            // REALIZAMOS LA CONSULTA DE AGREGACIÓN CON PAGINACIÓN
-            const results = await AccountSeat.aggregate([
+            // REALIZAMOS LA CONSULTA DE AGREGACIÓN
+            const aggregationPipeline: any[] = [
                 {
                     $lookup: {
                         from: "seats",
@@ -193,18 +192,28 @@ export class AccountSeatController {
                         accountSeats: 1,
                     },
                 },
-                { $skip: skip },
-                { $limit: pageSize },
-            ]);
+            ];
 
-            // CALCULAR EL NÚMERO TOTAL DE DOCUMENTOS
+            // Si se proporcionan 'page' y 'limit', agregamos los operadores $skip y $limit
+            if (pageNumber && pageSize) {
+                const skip = (pageNumber - 1) * pageSize;
+                aggregationPipeline.push({ $skip: skip }, { $limit: pageSize });
+            }
+
+            // EJECUTAMOS LA CONSULTA
+            const results = await AccountSeat.aggregate(aggregationPipeline);
+
+            // CALCULAR EL NÚMERO TOTAL DE DOCUMENTOS (si hay paginación)
             const totalSeats = await AccountSeat.countDocuments();
+
+            // Si hay paginación, calcular total de páginas
+            const totalPages = pageSize ? Math.ceil(totalSeats / pageSize) : 1;
 
             // DEVOLVER LOS RESULTADOS CON LA INFORMACIÓN DE PÁGINAS
             res.send({
                 seats: results,
-                totalPages: Math.ceil(totalSeats / pageSize),
-                currentPage: pageNumber,
+                totalPages: totalPages,
+                currentPage: pageNumber || null, // Si no hay paginación, currentPage es null
             });
         } catch (error) {
             // ENVIAMOS EL MENSAJE DE ERROR
