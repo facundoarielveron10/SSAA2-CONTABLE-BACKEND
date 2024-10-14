@@ -1,8 +1,11 @@
 import Account from "../models/Account";
 
+interface Amount {
+    amount: number;
+    type: string;
+}
 interface Seat {
-    debe: number;
-    haber: number;
+    amount: Amount;
 }
 
 interface Totals {
@@ -88,8 +91,12 @@ export const isValidValues = (debe: number, haber: number) => {
 export const getTotalsDebeHaber = (seats: Seat[]): Totals => {
     return seats.reduce<Totals>(
         (totals, seat) => {
-            totals.debe += seat.debe;
-            totals.haber += seat.haber;
+            const { amount } = seat;
+            if (amount.type === "debe") {
+                totals.debe += amount.amount;
+            } else if (amount.type === "haber") {
+                totals.haber += amount.amount;
+            }
             return totals;
         },
         { debe: 0, haber: 0 }

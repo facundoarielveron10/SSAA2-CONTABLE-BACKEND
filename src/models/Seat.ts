@@ -4,6 +4,7 @@ export type SeatType = Document & {
     date: Date;
     description: string;
     user: Types.ObjectId;
+    number: number;
 };
 
 const seatSchema: Schema = new Schema({
@@ -18,6 +19,11 @@ const seatSchema: Schema = new Schema({
     user: {
         type: Types.ObjectId,
         ref: "User",
+    },
+    number: {
+        type: Number,
+        required: true,
+        unique: true,
     },
 });
 

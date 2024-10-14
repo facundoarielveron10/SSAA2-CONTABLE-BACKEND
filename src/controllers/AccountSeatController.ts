@@ -44,11 +44,16 @@ export class AccountSeatController {
                 return res.status(403).json({ errors: error.message });
             }
 
+            // OBTENEMOS EL ÚLTIMO NÚMERO DE ASIENTO
+            const lastSeat = await Seat.findOne().sort({ number: -1 }).exec();
+            const nextSeatNumber = lastSeat ? lastSeat.number + 1 : 1;
+
             // CREAMOS EL ASIENTO PRINCIPAL
             const newSeat = new Seat({
                 date: Date.now(),
                 description: description,
                 user: id,
+                number: nextSeatNumber,
             });
 
             // GUARDAMOS EL ASIENTO
@@ -56,8 +61,12 @@ export class AccountSeatController {
 
             // CREAMOS UN ASIENTO POR CADA REGISTRO QUE NOS LLEGO
             for (const seat of seats) {
-                // OBTENEMOS EL ID DE LA CUENTA, DEBE Y HABER
-                const { account, debe, haber } = seat;
+                // OBTENEMOS EL ID DE LA CUENTA Y EL MONTO
+                const { account, amount } = seat;
+
+                // ASIGNAMOS LOS VALORES DE DEBE Y HABER SEGÚN EL TIPO
+                const debe = amount.type === "debe" ? amount.amount : 0;
+                const haber = amount.type === "haber" ? amount.amount : 0;
 
                 // BUSCAMOS LA CUENTA INVOLUCRADA EN EL ASIENTO
                 const accountToUpdate = await Account.findById(account).session(
@@ -107,6 +116,7 @@ export class AccountSeatController {
             // ENVIAMOS EL MENSAJE DE EXITO
             res.send("Asiento creado correctamente");
         } catch (error) {
+            console.log(error);
             // REVERTIMOS LA TRANSACCION EN CASO DE ERROR
             await session.abortTransaction();
             session.endSession();
@@ -214,6 +224,83 @@ export class AccountSeatController {
                 seats: results,
                 totalPages: totalPages,
                 currentPage: pageNumber || null, // Si no hay paginación, currentPage es null
+            });
+        } catch (error) {
+            // ENVIAMOS EL MENSAJE DE ERROR
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
+    static getSeats = async (req: CustomRequest, res: Response) => {
+        try {
+            // OBTENEMOS EL ID DEL USUARIO AUTENTICADO
+            const id = req.user["id"];
+
+            // VERIFICAMOS LOS PERMISOS DEL USUARIO AUTENTICADO
+            const permissions = await hasPermissions(id, "GET_SEATS");
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            // OBTENER PÁGINA, LÍMITE, FECHA DESDE Y HASTA DE LOS QUERY PARAMS
+            const { page, limit, from, to } = req.query;
+
+            // PARSEAR PAGE Y LIMIT A NÚMEROS
+            const pageNumber = page ? parseInt(page as string) : null;
+            const pageSize = limit ? parseInt(limit as string) : null;
+
+            // SI VIENEN FECHAS "DESDE" Y "HASTA", LAS UTILIZAMOS
+            let startDate = null,
+                endDate = null;
+            if (from && to) {
+                startDate = new Date(from as string);
+                endDate = new Date(new Date(to as string).setHours(23, 59, 59));
+            } else {
+                // SI NO VIENEN FECHAS, UTILIZAMOS EL MES ACTUAL
+                const now = new Date();
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                endDate = new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    now.getDate(),
+                    23,
+                    59,
+                    59
+                );
+            }
+
+            // OBTENER EL TOTAL DE REGISTROS SIN PAGINADO
+            const totalSeats = await Seat.countDocuments({
+                date: { $gte: startDate, $lte: endDate },
+            });
+
+            // CONFIGURACIÓN PARA EL PAGINADO
+            let seats = null;
+            if (pageNumber !== null && pageSize !== null) {
+                const skip = (pageNumber - 1) * pageSize;
+                seats = await Seat.find(
+                    { date: { $gte: startDate, $lte: endDate } },
+                    "date description number"
+                )
+                    .skip(skip)
+                    .limit(pageSize)
+                    .exec();
+            } else {
+                // Si no hay paginación, traer todos los registros
+                seats = await Seat.find(
+                    { date: { $gte: startDate, $lte: endDate } },
+                    "date description number"
+                ).exec();
+            }
+
+            // CALCULAR TOTAL DE PÁGINAS
+            const totalPages = pageSize ? Math.ceil(totalSeats / pageSize) : 1;
+
+            // DEVOLVER LOS RESULTADOS
+            res.send({
+                seats,
+                totalPages,
             });
         } catch (error) {
             // ENVIAMOS EL MENSAJE DE ERROR
