@@ -216,14 +216,14 @@ export class AccountSeatController {
             // CALCULAR EL NÚMERO TOTAL DE DOCUMENTOS (si hay paginación)
             const totalSeats = await AccountSeat.countDocuments();
 
-            // Si hay paginación, calcular total de páginas
+            // SI HAY PAGINACION, CALCULAR EL TOTAL DE PAGINAS
             const totalPages = pageSize ? Math.ceil(totalSeats / pageSize) : 1;
 
             // DEVOLVER LOS RESULTADOS CON LA INFORMACIÓN DE PÁGINAS
             res.send({
                 seats: results,
                 totalPages: totalPages,
-                currentPage: pageNumber || null, // Si no hay paginación, currentPage es null
+                currentPage: pageNumber || null,
             });
         } catch (error) {
             // ENVIAMOS EL MENSAJE DE ERROR
@@ -262,8 +262,8 @@ export class AccountSeatController {
                 startDate = new Date(now.getFullYear(), now.getMonth(), 1);
                 endDate = new Date(
                     now.getFullYear(),
-                    now.getMonth(),
-                    now.getDate(),
+                    now.getMonth() + 1,
+                    0,
                     23,
                     59,
                     59
