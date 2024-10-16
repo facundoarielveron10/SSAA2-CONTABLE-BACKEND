@@ -307,4 +307,97 @@ export class AccountSeatController {
             res.status(500).json({ errors: "Hubo un error" });
         }
     };
+
+    static getSeat = async (req: CustomRequest, res: Response) => {
+        try {
+            // OBTENEMOS EL ID DEL USUARIO AUTENTICADO
+            const id = req.user["id"];
+
+            // VERIFICAMOS LOS PERMISOS DEL USUARIO AUTENTICADO
+            const permissions = await hasPermissions(id, "GET_SEATS");
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            // OBTENEMOS EL ID DEL ASIENTO
+            const { idSeat } = req.params;
+
+            // CONSTRUIMOS EL PIPELINE DE AGREGACIÓN PARA EL ASIENTO ESPECÍFICO
+            const aggregationPipeline: any[] = [
+                { $match: { seat: new mongoose.Types.ObjectId(idSeat) } }, // Filtra por idSeat
+                {
+                    $lookup: {
+                        from: "seats",
+                        localField: "seat",
+                        foreignField: "_id",
+                        as: "seat",
+                    },
+                },
+                { $unwind: "$seat" },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "seat.user",
+                        foreignField: "_id",
+                        as: "user",
+                    },
+                },
+                { $unwind: "$user" },
+                {
+                    $lookup: {
+                        from: "accounts",
+                        localField: "account",
+                        foreignField: "_id",
+                        as: "account",
+                    },
+                },
+                { $unwind: "$account" },
+                {
+                    $project: {
+                        seatId: "$seat._id",
+                        seat: {
+                            date: "$seat.date",
+                            description: "$seat.description",
+                            user: "$user.email",
+                        },
+                        accountSeat: {
+                            account: "$account.nameAccount",
+                            debe: "$debe",
+                            haber: "$haber",
+                        },
+                    },
+                },
+                {
+                    $group: {
+                        _id: "$seatId",
+                        seat: { $first: "$seat" },
+                        accountSeats: { $push: "$accountSeat" },
+                    },
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        seat: 1,
+                        accountSeats: 1,
+                    },
+                },
+            ];
+
+            // EJECUTAMOS LA CONSULTA
+            const seat = await AccountSeat.aggregate(aggregationPipeline);
+
+            // VERIFICAR SI SE ENCONTRÓ EL ASIENTO
+            if (!seat) {
+                const error = new Error("El Asiento no fue encontrado");
+                return res.status(404).json({ errors: error.message });
+            }
+
+            // DEVOLVER LOS RESULTADOS (SOLO UNO, PORQUE SE FILTRA POR idSeat)
+            res.send(seat);
+        } catch (error) {
+            // ENVIAMOS EL MENSAJE DE ERROR
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
 }

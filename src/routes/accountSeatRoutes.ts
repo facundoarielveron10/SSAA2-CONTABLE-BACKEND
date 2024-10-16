@@ -23,6 +23,7 @@ router.post(
 // ---- GET ---- //
 router.get("/diary", authenticate, AccountSeatController.getDiary);
 router.get("/seats", authenticate, AccountSeatController.getSeats);
+router.get("/seat/:idSeat", authenticate, AccountSeatController.getSeat);
 // ---- GET ---- //
 
 export default router;
