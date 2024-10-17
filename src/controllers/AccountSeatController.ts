@@ -137,14 +137,37 @@ export class AccountSeatController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            // OBTENER PÁGINA Y LÍMITE DE LOS QUERY PARAMS
-            const { page, limit } = req.query;
+            // OBTENER PÁGINA, LÍMITE, FECHA DESDE Y HASTA DE LOS QUERY PARAMS
+            const { page, limit, from, to, reverse } = req.query;
 
             // PARSEAR PAGE Y LIMIT A NÚMEROS
-            const pageNumber = parseInt(page as string);
-            const pageSize = parseInt(limit as string);
+            const pageNumber = page ? parseInt(page as string) : null;
+            const pageSize = limit ? parseInt(limit as string) : null;
 
-            // REALIZAMOS LA CONSULTA DE AGREGACIÓN
+            // SI VIENEN FECHAS "DESDE" Y "HASTA", LAS UTILIZAMOS
+            let startDate = null,
+                endDate = null;
+            if (from && to) {
+                startDate = new Date(from as string);
+                endDate = new Date(new Date(to as string).setHours(23, 59, 59));
+            } else {
+                // SI NO VIENEN FECHAS, UTILIZAMOS EL MES ACTUAL
+                const now = new Date();
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                endDate = new Date(
+                    now.getFullYear(),
+                    now.getMonth() + 1,
+                    0,
+                    23,
+                    59,
+                    59
+                );
+            }
+
+            // DETERMINAR EL ORDEN DE LOS ASIENTOS (ASC por defecto, DESC si reverse es true)
+            const sortOrder = reverse && reverse === "true" ? -1 : 1;
+
+            // CONSTRUIMOS EL PIPELINE DE AGREGACIÓN
             const aggregationPipeline: any[] = [
                 {
                     $lookup: {
@@ -202,6 +225,16 @@ export class AccountSeatController {
                         accountSeats: 1,
                     },
                 },
+                // FILTRO POR FECHAS
+                {
+                    $match: {
+                        "seat.date": { $gte: startDate, $lte: endDate },
+                    },
+                },
+                // ORDENAR POR FECHA (ascendente o descendente según reverse)
+                {
+                    $sort: { "seat.date": sortOrder },
+                },
             ];
 
             // Si se proporcionan 'page' y 'limit', agregamos los operadores $skip y $limit
@@ -214,7 +247,9 @@ export class AccountSeatController {
             const results = await AccountSeat.aggregate(aggregationPipeline);
 
             // CALCULAR EL NÚMERO TOTAL DE DOCUMENTOS (si hay paginación)
-            const totalSeats = await AccountSeat.countDocuments();
+            const totalSeats = await AccountSeat.countDocuments({
+                "seat.date": { $gte: startDate, $lte: endDate },
+            });
 
             // SI HAY PAGINACION, CALCULAR EL TOTAL DE PAGINAS
             const totalPages = pageSize ? Math.ceil(totalSeats / pageSize) : 1;
