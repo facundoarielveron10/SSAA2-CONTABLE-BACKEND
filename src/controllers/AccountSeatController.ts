@@ -244,7 +244,7 @@ export class AccountSeatController {
             }
 
             // OBTENER PÁGINA, LÍMITE, FECHA DESDE Y HASTA DE LOS QUERY PARAMS
-            const { page, limit, from, to } = req.query;
+            const { page, limit, from, to, reverse } = req.query;
 
             // PARSEAR PAGE Y LIMIT A NÚMEROS
             const pageNumber = page ? parseInt(page as string) : null;
@@ -275,6 +275,9 @@ export class AccountSeatController {
                 date: { $gte: startDate, $lte: endDate },
             });
 
+            // DETERMINAR EL ORDEN DE LOS ASIENTOS (DESC si reverse es true, ASC en caso contrario)
+            const sortOrder = reverse && reverse === "true" ? -1 : 1;
+
             // CONFIGURACIÓN PARA EL PAGINADO
             let seats = null;
             if (pageNumber !== null && pageSize !== null) {
@@ -283,6 +286,7 @@ export class AccountSeatController {
                     { date: { $gte: startDate, $lte: endDate } },
                     "date description number"
                 )
+                    .sort({ date: sortOrder })
                     .skip(skip)
                     .limit(pageSize)
                     .exec();
@@ -291,7 +295,9 @@ export class AccountSeatController {
                 seats = await Seat.find(
                     { date: { $gte: startDate, $lte: endDate } },
                     "date description number"
-                ).exec();
+                )
+                    .sort({ date: sortOrder })
+                    .exec();
             }
 
             // CALCULAR TOTAL DE PÁGINAS
