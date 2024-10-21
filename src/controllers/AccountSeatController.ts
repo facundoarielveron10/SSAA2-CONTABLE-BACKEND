@@ -267,8 +267,8 @@ export class AccountSeatController {
             }
 
             const { page, limit, from, to, reverse, search } = req.query;
-            const pageNumber = page ? parseInt(page as string) : null;
-            const pageSize = limit ? parseInt(limit as string) : null;
+            const pageNumber = page ? parseInt(page as string) : 1;
+            const pageSize = limit ? parseInt(limit as string) : 4;
 
             let startDate = null,
                 endDate = null;
@@ -328,10 +328,8 @@ export class AccountSeatController {
                 {
                     $match: {
                         "account.type": { $in: ["Activo", "Pasivo"] },
+                        "seat.date": { $gte: startDate, $lte: endDate },
                     },
-                },
-                {
-                    $sort: { "seat.date": 1 },
                 },
                 {
                     $group: {
@@ -438,25 +436,32 @@ export class AccountSeatController {
                 });
             }
 
-            if (pageNumber && pageSize) {
-                const skip = (pageNumber - 1) * pageSize;
-                aggregationPipeline.push({ $skip: skip }, { $limit: pageSize });
-            }
+            // Paginación y conteo en una sola consulta usando $facet
+            const results = await AccountSeat.aggregate([
+                ...aggregationPipeline,
+                {
+                    $facet: {
+                        paginatedResults: [
+                            { $skip: (pageNumber - 1) * pageSize },
+                            { $limit: pageSize },
+                        ],
+                        totalCount: [{ $count: "count" }],
+                    },
+                },
+            ]);
 
-            const results = await AccountSeat.aggregate(aggregationPipeline);
-            const totalAccounts = await AccountSeat.countDocuments({
-                "seats.seat.date": { $gte: startDate, $lte: endDate },
-                "account.type": { $in: ["Activo", "Pasivo"] },
-            });
+            const paginatedResults = results[0].paginatedResults;
+            const totalCount =
+                results[0].totalCount.length > 0
+                    ? results[0].totalCount[0].count
+                    : 0;
 
-            const totalPages = pageSize
-                ? Math.ceil(totalAccounts / pageSize)
-                : 1;
+            const totalPages = pageSize ? Math.ceil(totalCount / pageSize) : 1;
 
             res.send({
-                ledger: results,
+                ledger: paginatedResults,
                 totalPages: totalPages,
-                currentPage: pageNumber || null,
+                currentPage: pageNumber,
             });
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
