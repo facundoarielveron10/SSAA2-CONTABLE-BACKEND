@@ -22,6 +22,7 @@ router.post(
 
 // ---- GET ---- //
 router.get("/diary", authenticate, AccountSeatController.getDiary);
+router.get("/ledger", authenticate, AccountSeatController.getLedger);
 router.get("/seats", authenticate, AccountSeatController.getSeats);
 router.get("/seat/:idSeat", authenticate, AccountSeatController.getSeat);
 // ---- GET ---- //

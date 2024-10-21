@@ -180,15 +180,6 @@ export class AccountSeatController {
                 { $unwind: "$seat" },
                 {
                     $lookup: {
-                        from: "users",
-                        localField: "seat.user",
-                        foreignField: "_id",
-                        as: "user",
-                    },
-                },
-                { $unwind: "$user" },
-                {
-                    $lookup: {
                         from: "accounts",
                         localField: "account",
                         foreignField: "_id",
@@ -266,6 +257,212 @@ export class AccountSeatController {
         }
     };
 
+    static getLedger = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+            const permissions = await hasPermissions(id, "GET_LEDGER");
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const { page, limit, from, to, reverse, search } = req.query;
+            const pageNumber = page ? parseInt(page as string) : null;
+            const pageSize = limit ? parseInt(limit as string) : null;
+
+            let startDate = null,
+                endDate = null;
+            if (from && to) {
+                startDate = new Date(from as string);
+                endDate = new Date(new Date(to as string).setHours(23, 59, 59));
+            } else {
+                const now = new Date();
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                endDate = new Date(
+                    now.getFullYear(),
+                    now.getMonth() + 1,
+                    0,
+                    23,
+                    59,
+                    59
+                );
+            }
+
+            const sortOrder = reverse && reverse === "true" ? -1 : 1;
+
+            const aggregationPipeline: any[] = [
+                {
+                    $lookup: {
+                        from: "seats",
+                        localField: "seat",
+                        foreignField: "_id",
+                        as: "seat",
+                    },
+                },
+                { $unwind: "$seat" },
+                {
+                    $lookup: {
+                        from: "accounts",
+                        localField: "account",
+                        foreignField: "_id",
+                        as: "account",
+                    },
+                },
+                { $unwind: "$account" },
+                {
+                    $project: {
+                        account: {
+                            nameAccount: "$account.nameAccount",
+                            type: "$account.type",
+                            code: "$account.code",
+                        },
+                        seat: {
+                            date: "$seat.date",
+                            description: "$seat.description",
+                        },
+                        debe: "$debe",
+                        haber: "$haber",
+                        balance: "$balance",
+                    },
+                },
+                {
+                    $match: {
+                        "account.type": { $in: ["Activo", "Pasivo"] },
+                    },
+                },
+                {
+                    $sort: { "seat.date": 1 },
+                },
+                {
+                    $group: {
+                        _id: "$account.code",
+                        account: { $first: "$account" },
+                        seats: {
+                            $push: {
+                                seat: "$seat",
+                                debe: "$debe",
+                                haber: "$haber",
+                                balance: "$balance",
+                            },
+                        },
+                    },
+                },
+                {
+                    $addFields: {
+                        seats: {
+                            $filter: {
+                                input: "$seats",
+                                as: "seat",
+                                cond: {
+                                    $and: [
+                                        {
+                                            $gte: [
+                                                "$$seat.seat.date",
+                                                startDate,
+                                            ],
+                                        },
+                                        { $lte: ["$$seat.seat.date", endDate] },
+                                    ],
+                                },
+                            },
+                        },
+                    },
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        account: 1,
+                        seats: 1,
+                        openingBalance: {
+                            $let: {
+                                vars: {
+                                    firstSeat: { $arrayElemAt: ["$seats", 0] },
+                                },
+                                in: {
+                                    $cond: [
+                                        { $gt: ["$$firstSeat.haber", 0] },
+                                        {
+                                            $add: [
+                                                "$$firstSeat.balance",
+                                                "$$firstSeat.haber",
+                                            ],
+                                        },
+                                        {
+                                            $subtract: [
+                                                "$$firstSeat.balance",
+                                                "$$firstSeat.debe",
+                                            ],
+                                        },
+                                    ],
+                                },
+                            },
+                        },
+                        finalBalance: {
+                            $let: {
+                                vars: {
+                                    lastFilteredSeat: {
+                                        $arrayElemAt: [
+                                            "$seats",
+                                            {
+                                                $subtract: [
+                                                    { $size: "$seats" },
+                                                    1,
+                                                ],
+                                            },
+                                        ],
+                                    },
+                                },
+                                in: "$$lastFilteredSeat.balance",
+                            },
+                        },
+                    },
+                },
+                {
+                    $match: { "seats.0": { $exists: true } }, // Ignorar cuentas sin asientos
+                },
+                {
+                    $sort: { "seats.seat.date": sortOrder },
+                },
+            ];
+
+            // Añadir búsqueda si está presente
+            if (search) {
+                const searchRegex = new RegExp(search as string, "i");
+                aggregationPipeline.push({
+                    $match: {
+                        $or: [
+                            { "account.nameAccount": { $regex: searchRegex } },
+                            { "seat.description": { $regex: searchRegex } },
+                        ],
+                    },
+                });
+            }
+
+            if (pageNumber && pageSize) {
+                const skip = (pageNumber - 1) * pageSize;
+                aggregationPipeline.push({ $skip: skip }, { $limit: pageSize });
+            }
+
+            const results = await AccountSeat.aggregate(aggregationPipeline);
+            const totalAccounts = await AccountSeat.countDocuments({
+                "seats.seat.date": { $gte: startDate, $lte: endDate },
+                "account.type": { $in: ["Activo", "Pasivo"] },
+            });
+
+            const totalPages = pageSize
+                ? Math.ceil(totalAccounts / pageSize)
+                : 1;
+
+            res.send({
+                ledger: results,
+                totalPages: totalPages,
+                currentPage: pageNumber || null,
+            });
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
     static getSeats = async (req: CustomRequest, res: Response) => {
         try {
             // OBTENEMOS EL ID DEL USUARIO AUTENTICADO
@@ -319,19 +516,23 @@ export class AccountSeatController {
                 const skip = (pageNumber - 1) * pageSize;
                 seats = await Seat.find(
                     { date: { $gte: startDate, $lte: endDate } },
-                    "date description number"
+                    "date description number user"
                 )
                     .sort({ date: sortOrder })
                     .skip(skip)
                     .limit(pageSize)
+                    // Usamos populate para traer el email del usuario
+                    .populate("user", "email")
                     .exec();
             } else {
                 // Si no hay paginación, traer todos los registros
                 seats = await Seat.find(
                     { date: { $gte: startDate, $lte: endDate } },
-                    "date description number"
+                    "date description number user"
                 )
                     .sort({ date: sortOrder })
+                    // Usamos populate para traer el email del usuario
+                    .populate("user", "email")
                     .exec();
             }
 
