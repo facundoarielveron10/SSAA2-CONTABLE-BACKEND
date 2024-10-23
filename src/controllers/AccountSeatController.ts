@@ -79,8 +79,19 @@ export class AccountSeatController {
                     return res.status(404).json({ errors: error.message });
                 }
 
-                // CALCULAMOS EL NUEVO SALDO DE LA CUENTA INVOLUCRADA
-                const newBalance = accountToUpdate.balance + (debe - haber);
+                // AJUSTE DEL BALANCE SEGÚN EL TIPO DE CUENTA
+                let newBalance = 0;
+                if (
+                    accountToUpdate.type === "Pasivo" ||
+                    accountToUpdate.type === "PN" ||
+                    accountToUpdate.type === "R+"
+                ) {
+                    // Para "Pasivo", "PN" y "R+", aumentamos con el haber y disminuimos con el debe
+                    newBalance = accountToUpdate.balance + haber - debe;
+                } else {
+                    // Para otros tipos de cuentas (e.g. Activo, R-), hacemos lo opuesto
+                    newBalance = accountToUpdate.balance + debe - haber;
+                }
 
                 // VALIDAMOS QUE EL NUEVO SALDO NO SEA NEGATIVO
                 if (newBalance < 0) {
@@ -327,7 +338,9 @@ export class AccountSeatController {
                 },
                 {
                     $match: {
-                        "account.type": { $in: ["Activo", "Pasivo"] },
+                        "account.type": {
+                            $in: ["Activo", "Pasivo"],
+                        },
                         "seat.date": { $gte: startDate, $lte: endDate },
                     },
                 },
@@ -377,21 +390,39 @@ export class AccountSeatController {
                                     firstSeat: { $arrayElemAt: ["$seats", 0] },
                                 },
                                 in: {
-                                    $cond: [
-                                        { $gt: ["$$firstSeat.haber", 0] },
-                                        {
-                                            $add: [
-                                                "$$firstSeat.balance",
-                                                "$$firstSeat.haber",
-                                            ],
-                                        },
-                                        {
-                                            $subtract: [
-                                                "$$firstSeat.balance",
-                                                "$$firstSeat.debe",
-                                            ],
-                                        },
-                                    ],
+                                    $switch: {
+                                        branches: [
+                                            {
+                                                case: {
+                                                    $in: [
+                                                        "$account.type",
+                                                        ["Pasivo"],
+                                                    ],
+                                                },
+                                                then: {
+                                                    $subtract: [
+                                                        "$$firstSeat.balance",
+                                                        "$$firstSeat.haber",
+                                                    ],
+                                                },
+                                            },
+                                            {
+                                                case: {
+                                                    $in: [
+                                                        "$account.type",
+                                                        ["Activo"],
+                                                    ],
+                                                },
+                                                then: {
+                                                    $subtract: [
+                                                        "$$firstSeat.balance",
+                                                        "$$firstSeat.debe",
+                                                    ],
+                                                },
+                                            },
+                                        ],
+                                        default: "$$firstSeat.balance",
+                                    },
                                 },
                             },
                         },
@@ -416,7 +447,7 @@ export class AccountSeatController {
                     },
                 },
                 {
-                    $match: { "seats.0": { $exists: true } }, // Ignorar cuentas sin asientos
+                    $match: { "seats.0": { $exists: true } },
                 },
                 {
                     $sort: { "seats.seat.date": sortOrder },
