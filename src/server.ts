@@ -3,10 +3,11 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { corsConfig } from "./config/cors";
 import { connectDB } from "./config/database";
-import userRoutes from "./routes/userRoutes";
-import roleActionRoutes from "./routes/roleActionRoutes";
-import accountRoutes from "./routes/accountRoutes";
-import accountSeatRoutes from "./routes/accountSeatRoutes";
+import UserRoutes from "./routes/UserRoutes";
+import RoleActionRoutes from "./routes/RoleActionRoutes";
+import AccountRoutes from "./routes/AccountRoutes";
+import AccountSeatRoutes from "./routes/AccountSeatRoutes";
+import StatisticsRoutes from "./routes/StatisticsRoutes";
 
 dotenv.config();
 
@@ -18,9 +19,10 @@ app.use(cors(corsConfig));
 app.use(express.json());
 
 // ROUTES
-app.use("/api/user", userRoutes);
-app.use("/api/role-action", roleActionRoutes);
-app.use("/api/account", accountRoutes);
-app.use("/api/account-seat", accountSeatRoutes);
+app.use("/api/user", UserRoutes);
+app.use("/api/role-action", RoleActionRoutes);
+app.use("/api/account", AccountRoutes);
+app.use("/api/account-seat", AccountSeatRoutes);
+app.use("/api/stats", StatisticsRoutes);
 
 export default app;
