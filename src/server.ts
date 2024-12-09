@@ -8,6 +8,7 @@ import RoleActionRoutes from "./routes/RoleActionRoutes";
 import AccountRoutes from "./routes/AccountRoutes";
 import AccountSeatRoutes from "./routes/AccountSeatRoutes";
 import StatisticsRoutes from "./routes/StatisticsRoutes";
+import CategoryRoutes from "./routes/CategoryRoutes";
 
 dotenv.config();
 
@@ -24,5 +25,6 @@ app.use("/api/role-action", RoleActionRoutes);
 app.use("/api/account", AccountRoutes);
 app.use("/api/account-seat", AccountSeatRoutes);
 app.use("/api/stats", StatisticsRoutes);
+app.use("/api/category", CategoryRoutes);
 
 export default app;
