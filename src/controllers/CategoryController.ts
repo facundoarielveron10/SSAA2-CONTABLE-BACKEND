@@ -97,7 +97,7 @@ export class CategoryController {
 
             await category.save();
 
-            res.send("Categoria creada correctamente");
+            res.send("Categoria actualizada correctamente");
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }
