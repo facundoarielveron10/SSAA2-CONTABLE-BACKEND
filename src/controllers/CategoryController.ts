@@ -14,9 +14,30 @@ export class CategoryController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            const categories = await Category.find({});
+            const { page, limit } = req.query;
 
-            res.send(categories);
+            const pageNumber = page ? parseInt(page as string) : null;
+            const pageSize = limit ? parseInt(limit as string) : null;
+
+            // OBTENER EL TOTAL DE REGISTROS SIN PAGINADO
+            const totalCategories = await Category.countDocuments({});
+
+            let categories = null;
+            if (pageNumber !== null && pageSize !== null) {
+                const skip = (pageNumber - 1) * pageSize;
+                categories = await Category.find({})
+                    .skip(skip)
+                    .limit(pageSize)
+                    .exec();
+            } else {
+                categories = await Category.find({}).exec();
+            }
+
+            const totalPages = pageSize
+                ? Math.ceil(totalCategories / pageSize)
+                : 1;
+
+            res.send({ categories, totalPages });
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }

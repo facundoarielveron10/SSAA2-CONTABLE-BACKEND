@@ -10,6 +10,7 @@ import AccountSeatRoutes from "./routes/AccountSeatRoutes";
 import StatisticsRoutes from "./routes/StatisticsRoutes";
 import CategoryRoutes from "./routes/CategoryRoutes";
 import SupplierRoutes from "./routes/SupplierRoutes";
+import ArticleRoutes from "./routes/ArticleRoutes";
 
 dotenv.config();
 
@@ -28,5 +29,6 @@ app.use("/api/account-seat", AccountSeatRoutes);
 app.use("/api/stats", StatisticsRoutes);
 app.use("/api/category", CategoryRoutes);
 app.use("/api/supplier", SupplierRoutes);
+app.use("/api/article", ArticleRoutes);
 
 export default app;

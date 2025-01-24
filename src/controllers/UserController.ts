@@ -25,10 +25,10 @@ export class UserController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            const { page = 1, limit = 10 } = req.query;
-            const pageNumber = parseInt(page as string) || 1;
-            const pageSize = parseInt(limit as string) || 5;
-            const skip = (pageNumber - 1) * pageSize;
+            const { page, limit } = req.query;
+
+            const pageNumber = page ? parseInt(page as string) : null;
+            const pageSize = limit ? parseInt(limit as string) : null;
             const role = (req.query.role as string) || null;
 
             const query: any = {};
@@ -37,26 +37,32 @@ export class UserController {
                 query.role = roleDocument ? roleDocument._id : null;
             }
 
-            const users = await User.find(query)
-                .populate("role")
-                .select([
-                    "id",
-                    "name",
-                    "lastname",
-                    "email",
-                    "role",
-                    "active",
-                    "adminConfirmed",
-                ])
-                .skip(skip)
-                .limit(pageSize);
+            // OBTENER EL TOTAL DE REGISTROS SIN PAGINADO
+            const totalUsers = await User.countDocuments({});
 
-            const totalUsers = await User.countDocuments(query);
+            let users = null;
+            if (pageNumber && pageSize && role !== "null") {
+                const skip = (pageNumber - 1) * pageSize;
+                users = await User.find(query)
+                    .populate("role")
+                    .select([
+                        "id",
+                        "name",
+                        "lastname",
+                        "email",
+                        "role",
+                        "active",
+                        "adminConfirmed",
+                    ])
+                    .skip(skip)
+                    .limit(pageSize);
+            } else {
+                users = await User.find({}).exec();
+            }
 
-            res.send({
-                users,
-                totalPages: Math.ceil(totalUsers / pageSize),
-            });
+            const totalPages = pageSize ? Math.ceil(totalUsers / pageSize) : 1;
+
+            res.send({ users, totalPages });
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }

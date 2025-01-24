@@ -18,9 +18,25 @@ export class RoleActionController {
                 return res.status(409).json({ errors: error.message });
             }
 
-            const roles = await Role.find({});
+            const { page, limit } = req.query;
 
-            res.send(roles);
+            const pageNumber = page ? parseInt(page as string) : null;
+            const pageSize = limit ? parseInt(limit as string) : null;
+
+            // OBTENER EL TOTAL DE REGISTROS SIN PAGINADO
+            const totalRoles = await Role.countDocuments({});
+
+            let roles = null;
+            if (pageNumber !== null && pageSize !== null) {
+                const skip = (pageNumber - 1) * pageSize;
+                roles = await Role.find({}).skip(skip).limit(pageSize).exec();
+            } else {
+                roles = await Role.find({}).exec();
+            }
+
+            const totalPages = pageSize ? Math.ceil(totalRoles / pageSize) : 1;
+
+            res.send({ roles, totalPages });
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }
