@@ -20,12 +20,32 @@ router.post(
     CategoryController.createCategory
 );
 router.post(
+    "/delete-category",
+    authenticate,
+    body("idCategory")
+        .notEmpty()
+        .withMessage("El ID de la Categoria es Obligatoria"),
+    handleInputErrors,
+    CategoryController.deleteCategory
+);
+router.post(
+    "/active-category",
+    authenticate,
+    body("idCategory")
+        .notEmpty()
+        .withMessage("El ID de la Categoria es Obligatoria"),
+    handleInputErrors,
+    CategoryController.activeCategory
+);
+router.post(
     "/edit-category",
     authenticate,
     body("idCategory")
         .notEmpty()
         .withMessage("El ID de la Categoria es Obligatorio"),
-    body("newName").notEmpty().withMessage("El Nombre del Rol es Obligatorio"),
+    body("newName")
+        .notEmpty()
+        .withMessage("El Nombre de la Categoria es Obligatorio"),
     body("newDescription")
         .notEmpty()
         .withMessage("La Descricion de la Categoria es Obligatoria"),
@@ -36,6 +56,11 @@ router.post(
 
 // ---- GET ---- //
 router.get("/categories", authenticate, CategoryController.getAllCategories);
+router.get(
+    "/categories/actives",
+    authenticate,
+    CategoryController.getAllCategoriesActives
+);
 router.get(
     "/category/:idCategory",
     authenticate,

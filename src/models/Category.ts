@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from "mongoose";
 export type CategoryType = Document & {
     name: string;
     description: string;
+    active: boolean;
 };
 
 const categorySchema: Schema = new Schema({
@@ -14,6 +15,11 @@ const categorySchema: Schema = new Schema({
     description: {
         type: String,
         require: true,
+    },
+    active: {
+        type: Boolean,
+        require: true,
+        default: true,
     },
 });
 

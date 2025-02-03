@@ -43,6 +43,48 @@ export class SupplierController {
         }
     };
 
+    static getAllSuppliersActive = async (
+        req: CustomRequest,
+        res: Response
+    ) => {
+        try {
+            const id = req.user["id"];
+            const permissions = await hasPermissions(id, "GET_SUPPLIERS");
+
+            if (!permissions) {
+                const error = new Error("El Usuario no tiene permisos");
+                return res.status(409).json({ errors: error.message });
+            }
+
+            const { page, limit } = req.query;
+
+            const pageNumber = page ? parseInt(page as string) : null;
+            const pageSize = limit ? parseInt(limit as string) : null;
+
+            // OBTENER EL TOTAL DE REGISTROS SIN PAGINADO
+            const totalSuppliers = await Supplier.countDocuments({});
+
+            let suppliers = null;
+            if (pageNumber !== null && pageSize !== null) {
+                const skip = (pageNumber - 1) * pageSize;
+                suppliers = await Supplier.find({ active: true })
+                    .skip(skip)
+                    .limit(pageSize)
+                    .exec();
+            } else {
+                suppliers = await Supplier.find({ active: true }).exec();
+            }
+
+            const totalPages = pageSize
+                ? Math.ceil(totalSuppliers / pageSize)
+                : 1;
+
+            res.send({ suppliers, totalPages });
+        } catch (error) {
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
     static getSupplier = async (req: CustomRequest, res: Response) => {
         try {
             const id = req.user["id"];
@@ -154,8 +196,6 @@ export class SupplierController {
                 const error = new Error("El Proveedor no fue encontrado");
                 return res.status(404).json({ errors: error.message });
             }
-
-            // FALTA DESACTIVAR LOS ARTICULOS
 
             supplier.active = false;
             await supplier.save();

@@ -4,6 +4,7 @@ export type ArticleType = Document & {
     name: string;
     description: string;
     unitPrice: number;
+    active: boolean;
 };
 
 const articleSchema: Schema = new Schema({
@@ -19,6 +20,11 @@ const articleSchema: Schema = new Schema({
     unitPrice: {
         type: Number,
         require: true,
+    },
+    active: {
+        type: Boolean,
+        require: true,
+        default: true,
     },
 });
 

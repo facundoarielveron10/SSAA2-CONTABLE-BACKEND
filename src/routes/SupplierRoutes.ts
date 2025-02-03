@@ -69,6 +69,11 @@ router.post(
 // ---- GET ---- //
 router.get("/suppliers", authenticate, SupplierController.getAllSuppliers);
 router.get(
+    "/suppliers/actives",
+    authenticate,
+    SupplierController.getAllSuppliersActive
+);
+router.get(
     "/supplier/:idSupplier",
     authenticate,
     SupplierController.getSupplier

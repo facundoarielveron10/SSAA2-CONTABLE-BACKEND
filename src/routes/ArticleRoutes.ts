@@ -30,9 +30,55 @@ router.post(
     handleInputErrors,
     ArticleController.createArticle
 );
+router.post(
+    "/delete-article",
+    authenticate,
+    body("idArticle")
+        .notEmpty()
+        .withMessage("El ID del Articulo es Obligatorio"),
+    handleInputErrors,
+    ArticleController.deleteArticle
+);
+router.post(
+    "/active-article",
+    authenticate,
+    body("idArticle")
+        .notEmpty()
+        .withMessage("El ID del Articulo es Obligatorio"),
+    handleInputErrors,
+    ArticleController.activeArticle
+);
+router.post(
+    "/edit-article",
+    authenticate,
+    body("idArticle")
+        .notEmpty()
+        .withMessage("El ID del Articulo es Obligatorio"),
+    body("newName")
+        .notEmpty()
+        .withMessage("El Nombre del Articulo es Obligatorio"),
+    body("newDescription")
+        .notEmpty()
+        .withMessage("La Descricion del Articulo es Obligatorio"),
+    body("newPrice")
+        .notEmpty()
+        .withMessage("El Precio del Articulo es Obligatorio"),
+    body("newCategories")
+        .notEmpty()
+        .isArray()
+        .withMessage("Las Categorias del Articulo son Obligatorias"),
+    body("newSuppliers")
+        .notEmpty()
+        .isArray()
+        .withMessage("Los Proveedores del Articulo son Obligatorios"),
+    handleInputErrors,
+    ArticleController.editArticle
+);
 // ---- POST ---- //
 
 // ---- GET ---- //
+router.get("/articles", authenticate, ArticleController.getAllArticles);
+router.get("/article/:idArticle", authenticate, ArticleController.getArticle);
 // ---- GET ---- //
 
 export default router;
