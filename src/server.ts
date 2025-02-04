@@ -11,6 +11,7 @@ import StatisticsRoutes from "./routes/StatisticsRoutes";
 import CategoryRoutes from "./routes/CategoryRoutes";
 import SupplierRoutes from "./routes/SupplierRoutes";
 import ArticleRoutes from "./routes/ArticleRoutes";
+import StockRoutes from "./routes/StockRoutes";
 
 dotenv.config();
 
@@ -30,5 +31,6 @@ app.use("/api/stats", StatisticsRoutes);
 app.use("/api/category", CategoryRoutes);
 app.use("/api/supplier", SupplierRoutes);
 app.use("/api/article", ArticleRoutes);
+app.use("/api/stock", StockRoutes);
 
 export default app;
