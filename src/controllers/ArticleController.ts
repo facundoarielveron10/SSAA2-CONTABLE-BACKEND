@@ -91,7 +91,6 @@ export class ArticleController {
                     .json({ errors: "El artículo no fue encontrado" });
             }
 
-            // Obtener categorías y proveedores asociados al artículo
             const categories = await ArticleCategory.find({
                 article: article._id,
             })
@@ -106,8 +105,14 @@ export class ArticleController {
 
             const articleData = {
                 ...article.toObject(),
-                categories: categories.map((c) => c.get("category._id")),
-                suppliers: suppliers.map((s) => s.get("supplier._id")),
+                categories: categories.map((c) => ({
+                    id: c.get("category._id"),
+                    name: c.get("category.name"),
+                })),
+                suppliers: suppliers.map((s) => ({
+                    id: s.get("supplier._id"),
+                    name: s.get("supplier.name"),
+                })),
             };
 
             res.send(articleData);

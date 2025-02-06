@@ -12,6 +12,7 @@ import CategoryRoutes from "./routes/CategoryRoutes";
 import SupplierRoutes from "./routes/SupplierRoutes";
 import ArticleRoutes from "./routes/ArticleRoutes";
 import StockRoutes from "./routes/StockRoutes";
+import PurchasingRoutes from "./routes/PurchasingRoutes";
 
 dotenv.config();
 
@@ -32,5 +33,6 @@ app.use("/api/category", CategoryRoutes);
 app.use("/api/supplier", SupplierRoutes);
 app.use("/api/article", ArticleRoutes);
 app.use("/api/stock", StockRoutes);
+app.use("/api/purchasing", PurchasingRoutes);
 
 export default app;
