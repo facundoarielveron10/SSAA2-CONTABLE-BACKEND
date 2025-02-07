@@ -8,7 +8,7 @@ const router = Router();
 
 // ---- POST ---- //
 router.post(
-    "/create-pucharse-request",
+    "/create-purchase-request",
     authenticate,
     body("description")
         .notEmpty()
@@ -29,6 +29,16 @@ router.post(
 // ---- POST ---- //
 
 // ---- GET ---- //
+router.get(
+    "/purchase-request",
+    authenticate,
+    PurchasingController.getAllPurchaseRequest
+);
+router.get(
+    "/purchase-request/:idPurchaseRequest",
+    authenticate,
+    PurchasingController.getArticlesPurchaseRequest
+);
 // ---- GET ---- //
 
 export default router;

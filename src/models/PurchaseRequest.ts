@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Date, Types } from "mongoose";
 
-export type PurcharseRequestType = Document & {
+export type PurchaseRequestType = Document & {
     description: string;
     requiredDate: Date;
     priority: string;
@@ -8,7 +8,7 @@ export type PurcharseRequestType = Document & {
     request: Types.ObjectId;
 };
 
-const purcharseRequestSchema: Schema = new Schema({
+const purchaseRequestSchema: Schema = new Schema({
     description: {
         type: String,
         require: true,
@@ -27,8 +27,8 @@ const purcharseRequestSchema: Schema = new Schema({
     },
 });
 
-const PurcharseRequest = mongoose.model<PurcharseRequestType>(
-    "PurcharseRequest",
-    purcharseRequestSchema
+const PurchaseRequest = mongoose.model<PurchaseRequestType>(
+    "PurchaseRequest",
+    purchaseRequestSchema
 );
-export default PurcharseRequest;
+export default PurchaseRequest;

@@ -1,12 +1,12 @@
 import mongoose, { Schema, Document, Date, Types } from "mongoose";
 
-export type PurcharseRequestDetailsType = Document & {
+export type PurchaseRequestDetailsType = Document & {
     amount: number;
     article: Types.ObjectId;
     request: Types.ObjectId;
 };
 
-const purcharseRequestDetailsSchema: Schema = new Schema({
+const purchaseRequestDetailsSchema: Schema = new Schema({
     amount: {
         type: Number,
         require: true,
@@ -21,8 +21,8 @@ const purcharseRequestDetailsSchema: Schema = new Schema({
     },
 });
 
-const PurcharseRequestDetails = mongoose.model<PurcharseRequestDetailsType>(
-    "PurcharseRequestDetails",
-    purcharseRequestDetailsSchema
+const PurchaseRequestDetails = mongoose.model<PurchaseRequestDetailsType>(
+    "PurchaseRequestDetails",
+    purchaseRequestDetailsSchema
 );
-export default PurcharseRequestDetails;
+export default PurchaseRequestDetails;
