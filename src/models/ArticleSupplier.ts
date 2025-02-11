@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Types } from "mongoose";
 export type ArticleSupplierType = Document & {
     article: Types.ObjectId;
     supplier: Types.ObjectId;
+    price: number;
 };
 
 const articleSupplierSchema: Schema = new Schema({
@@ -13,6 +14,10 @@ const articleSupplierSchema: Schema = new Schema({
     supplier: {
         type: Types.ObjectId,
         ref: "Supplier",
+    },
+    price: {
+        type: Number,
+        require: true,
     },
 });
 

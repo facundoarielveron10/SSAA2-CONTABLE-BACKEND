@@ -16,17 +16,14 @@ router.post(
     body("description")
         .notEmpty()
         .withMessage("La Descricion del Articulo es Obligatoria"),
-    body("unitPrice")
-        .notEmpty()
-        .withMessage("El Precio del Articulo es Obligatorio"),
     body("categories")
         .notEmpty()
         .isArray()
         .withMessage("Las Categorias del Articulo son Obligatorias"),
-    body("suppliers")
+    body("suppliersData")
         .notEmpty()
         .isArray()
-        .withMessage("Los Proveedores del Articulo son Obligatorios"),
+        .withMessage("Los Datos del Proveedor del Articulo son Obligatorios"),
     handleInputErrors,
     ArticleController.createArticle
 );
@@ -60,17 +57,16 @@ router.post(
     body("newDescription")
         .notEmpty()
         .withMessage("La Descricion del Articulo es Obligatorio"),
-    body("newPrice")
-        .notEmpty()
-        .withMessage("El Precio del Articulo es Obligatorio"),
     body("newCategories")
         .notEmpty()
         .isArray()
         .withMessage("Las Categorias del Articulo son Obligatorias"),
-    body("newSuppliers")
+    body("newSuppliersData")
         .notEmpty()
         .isArray()
-        .withMessage("Los Proveedores del Articulo son Obligatorios"),
+        .withMessage(
+            "Los Datos de los Proveedores del Articulo son Obligatorios"
+        ),
     handleInputErrors,
     ArticleController.editArticle
 );
@@ -79,6 +75,11 @@ router.post(
 // ---- GET ---- //
 router.get("/articles", authenticate, ArticleController.getAllArticles);
 router.get("/article/:idArticle", authenticate, ArticleController.getArticle);
+router.get(
+    "/prices/:idArticle",
+    authenticate,
+    ArticleController.getPricesArticle
+);
 // ---- GET ---- //
 
 export default router;

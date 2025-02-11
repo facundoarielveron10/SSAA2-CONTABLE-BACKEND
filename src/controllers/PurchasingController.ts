@@ -77,12 +77,7 @@ export class PurchasingController {
                 request: idPurchaseRequest,
             })
                 .select(["amount", "article", "-_id"])
-                .populate("article", [
-                    "name",
-                    "description",
-                    "unitPrice",
-                    "-_id",
-                ]);
+                .populate("article", ["name", "description", "-_id"]);
 
             res.send(articles);
         } catch (error) {

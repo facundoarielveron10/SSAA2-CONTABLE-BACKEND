@@ -3,7 +3,6 @@ import mongoose, { Schema, Document } from "mongoose";
 export type ArticleType = Document & {
     name: string;
     description: string;
-    unitPrice: number;
     active: boolean;
 };
 
@@ -15,10 +14,6 @@ const articleSchema: Schema = new Schema({
     },
     description: {
         type: String,
-        require: true,
-    },
-    unitPrice: {
-        type: Number,
         require: true,
     },
     active: {

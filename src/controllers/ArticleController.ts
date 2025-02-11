@@ -2,10 +2,12 @@ import type { Response } from "express";
 import { hasPermissions } from "../utils/auth";
 import { CustomRequest } from "../middleware/authenticate";
 import Article, { ArticleType } from "../models/Article";
-import Supplier from "../models/Supplier";
+import Supplier, { SupplierType } from "../models/Supplier";
 import Category from "../models/Category";
 import ArticleCategory from "../models/ArticleCategory";
-import ArticleSupplier from "../models/ArticleSupplier";
+import ArticleSupplier, {
+    ArticleSupplierType,
+} from "../models/ArticleSupplier";
 
 export class ArticleController {
     static getAllArticles = async (req: CustomRequest, res: Response) => {
@@ -112,10 +114,44 @@ export class ArticleController {
                 suppliers: suppliers.map((s) => ({
                     id: s.get("supplier._id"),
                     name: s.get("supplier.name"),
+                    price: s.get("price"),
                 })),
             };
 
             res.send(articleData);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
+    static getPricesArticle = async (req: CustomRequest, res: Response) => {
+        try {
+            const id = req.user["id"];
+            const permissions = await hasPermissions(id, "GET_ARTICLES");
+
+            if (!permissions) {
+                return res
+                    .status(409)
+                    .json({ errors: "El Usuario no tiene permisos" });
+            }
+
+            const { idArticle } = req.params;
+            const article = await Article.findById(idArticle).exec();
+
+            if (!article) {
+                return res
+                    .status(404)
+                    .json({ errors: "El artículo no fue encontrado" });
+            }
+
+            const prices = await ArticleSupplier.find({
+                article: idArticle,
+            })
+                .populate(["article", "supplier"])
+                .exec();
+
+            res.send(prices);
         } catch (error) {
             console.error(error);
             res.status(500).json({ errors: "Hubo un error" });
@@ -128,42 +164,40 @@ export class ArticleController {
             const permissions = await hasPermissions(id, "CREATE_ARTICLES");
 
             if (!permissions) {
-                const error = new Error("El Usuario no tiene permisos");
-                return res.status(409).json({ errors: error.message });
+                return res
+                    .status(409)
+                    .json({ errors: "El Usuario no tiene permisos" });
             }
 
-            const { name, description, unitPrice, categories, suppliers } =
-                req.body;
+            const { name, description, categories, suppliersData } = req.body;
 
             const article = await Article.findOne({ name });
             if (article) {
-                const error = new Error("El Articulo ya existe");
-                return res.status(400).json({ errors: error.message });
+                return res
+                    .status(400)
+                    .json({ errors: "El Articulo ya existe" });
             }
 
             const validCategories = await Category.find({
                 _id: { $in: categories },
             });
             if (validCategories.length !== categories.length) {
-                const error = new Error("Una o más categorías no existen");
-                return res.status(400).json({ errors: error.message });
+                return res
+                    .status(400)
+                    .json({ errors: "Una o más categorías no existen" });
             }
 
+            const supplierIds = suppliersData.map((s: { id: string }) => s.id);
             const validSuppliers = await Supplier.find({
-                _id: { $in: suppliers },
+                _id: { $in: supplierIds },
             });
-            if (validSuppliers.length !== suppliers.length) {
-                const error = new Error("Uno o más proveedores no existen");
-                return res.status(400).json({ errors: error.message });
+            if (validSuppliers.length !== suppliersData.length) {
+                return res
+                    .status(400)
+                    .json({ errors: "Uno o más proveedores no existen" });
             }
 
-            // Crear el artículo
-            const newArticle = new Article({
-                name,
-                description,
-                unitPrice,
-            });
-
+            const newArticle = new Article({ name, description });
             await newArticle.save();
 
             for (const category of categories) {
@@ -171,20 +205,19 @@ export class ArticleController {
                     article: newArticle._id,
                     category,
                 });
-
                 await newArticleCategory.save();
             }
 
-            for (const supplier of suppliers) {
+            for (const supplierData of suppliersData) {
                 const newArticleSupplier = new ArticleSupplier({
                     article: newArticle._id,
-                    supplier,
+                    supplier: supplierData.id,
+                    price: supplierData.price,
                 });
-
                 await newArticleSupplier.save();
             }
 
-            res.send("Articulo Creado Correctamente");
+            res.send("Artículo creado correctamente");
         } catch (error) {
             console.error(error);
             return res.status(500).json({ errors: "Hubo un error" });
@@ -206,9 +239,8 @@ export class ArticleController {
                 idArticle,
                 newName,
                 newDescription,
-                newPrice,
                 newCategories,
-                newSuppliers,
+                newSuppliersData,
             } = req.body;
 
             const article = await Article.findById(idArticle).exec();
@@ -221,7 +253,6 @@ export class ArticleController {
             // Actualizar datos básicos del artículo
             article.name = newName;
             article.description = newDescription;
-            article.unitPrice = newPrice;
             await article.save();
 
             // Actualizar categorías del artículo
@@ -238,11 +269,14 @@ export class ArticleController {
 
             // Actualizar proveedores del artículo
             await ArticleSupplier.deleteMany({ article: idArticle });
-            if (newSuppliers && newSuppliers.length > 0) {
-                const supplierDocs = newSuppliers.map((supplierId: string) => ({
-                    article: idArticle,
-                    supplier: supplierId,
-                }));
+            if (newSuppliersData && newSuppliersData.length > 0) {
+                const supplierDocs = newSuppliersData.map(
+                    (supplierData: ArticleSupplierType) => ({
+                        article: idArticle,
+                        supplier: supplierData?.id,
+                        price: supplierData?.price,
+                    })
+                );
                 await ArticleSupplier.insertMany(supplierDocs);
             }
 
