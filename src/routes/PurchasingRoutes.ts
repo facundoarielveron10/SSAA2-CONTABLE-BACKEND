@@ -35,6 +35,11 @@ router.get(
     PurchasingController.getAllPurchaseRequest
 );
 router.get(
+    "/purchase-request/articles",
+    authenticate,
+    PurchasingController.getAllPurchaseRequestWithArticles
+);
+router.get(
     "/purchase-request/:idPurchaseRequest",
     authenticate,
     PurchasingController.getArticlesPurchaseRequest
