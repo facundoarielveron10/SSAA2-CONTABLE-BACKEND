@@ -64,6 +64,16 @@ router.post(
     handleInputErrors,
     SupplierController.activeSupplier
 );
+router.post(
+    "/suppliers/articles",
+    authenticate,
+    body("articles")
+        .notEmpty()
+        .isArray()
+        .withMessage("Los Articulos son Obligatorios"),
+    handleInputErrors,
+    SupplierController.getSuppliersForArticles
+);
 // ---- POST ---- //
 
 // ---- GET ---- //

@@ -104,11 +104,16 @@ export class PurchasingController {
                         const details = await PurchaseRequestDetails.find({
                             request: purchaseRequest._id,
                         }).populate<{
-                            article: { name: string; description: string };
-                        }>("article", "name description");
+                            article: {
+                                name: string;
+                                description: string;
+                                _id: string;
+                            };
+                        }>("article", "name description _id");
 
                         // Extraer los artículos con su cantidad
                         const articles = details.map((detail) => ({
+                            _id: detail.article._id || "",
                             name: detail.article?.name || "Sin nombre",
                             description:
                                 detail.article?.description ||

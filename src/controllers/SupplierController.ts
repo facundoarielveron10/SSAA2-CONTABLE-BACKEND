@@ -2,6 +2,11 @@ import type { Request, Response } from "express";
 import { hasPermissions } from "../utils/auth";
 import { CustomRequest } from "../middleware/authenticate";
 import Supplier from "../models/Supplier";
+import ArticleSupplier, {
+    ArticleSupplierType,
+} from "../models/ArticleSupplier";
+import Article, { ArticleType } from "../models/Article";
+import { Types } from "mongoose";
 
 export class SupplierController {
     static getAllSuppliers = async (req: CustomRequest, res: Response) => {
@@ -106,6 +111,78 @@ export class SupplierController {
         } catch (error) {
             console.log(error);
             res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
+    static getSuppliersForArticles = async (
+        req: CustomRequest,
+        res: Response
+    ): Promise<Response> => {
+        try {
+            const id: string = req.user["id"];
+            const permissions: boolean = await hasPermissions(
+                id,
+                "GET_SUPPLIERS"
+            );
+
+            if (!permissions) {
+                return res
+                    .status(409)
+                    .json({ errors: "El Usuario no tiene permisos" });
+            }
+
+            const { articles }: { articles: string[] } = req.body;
+
+            const articleDocs: { _id: Types.ObjectId; name: string }[] =
+                await Article.find({
+                    _id: { $in: articles },
+                }).select("_id name");
+
+            if (articleDocs.length === 0) {
+                return res
+                    .status(404)
+                    .json({ errors: "No se encontraron artículos" });
+            }
+
+            const articleIds: Types.ObjectId[] = articleDocs.map(
+                (article) => article._id
+            );
+
+            const suppliers: {
+                _id: Types.ObjectId;
+                article: { _id: Types.ObjectId; name: string };
+                supplier: { _id: Types.ObjectId; name: string; email: string };
+                price: number;
+            }[] = await ArticleSupplier.find({ article: { $in: articleIds } })
+                .populate<{ _id: Types.ObjectId; name: string }>(
+                    "article",
+                    "name"
+                )
+                .populate<{ _id: Types.ObjectId; name: string; email: string }>(
+                    "supplier",
+                    "name email"
+                )
+                .select("article supplier price");
+
+            const result = articleDocs.map((article) => {
+                return {
+                    _id: article._id,
+                    article: { _id: article._id, name: article.name },
+                    suppliers: suppliers
+                        .filter((s) => s.article._id.equals(article._id))
+                        .map((s) => ({
+                            _id: s.supplier._id,
+                            name: s.supplier.name,
+                            email: s.supplier.email,
+                            price: s.price,
+                        })),
+                };
+            });
+
+            return res.send(result);
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ errors: "Hubo un error" });
         }
     };
 
