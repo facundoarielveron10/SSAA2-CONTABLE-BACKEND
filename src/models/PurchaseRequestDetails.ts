@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Date, Types } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 
 export type PurchaseRequestDetailsType = Document & {
     amount: number;
