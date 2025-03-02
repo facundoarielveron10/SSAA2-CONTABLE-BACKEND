@@ -12,6 +12,7 @@ router.post(
     authenticate,
     body("orders")
         .notEmpty()
+        .isArray()
         .withMessage("Las ordenes de compras son obligatorias"),
     handleInputErrors,
     OrderController.createOrder

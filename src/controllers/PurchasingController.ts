@@ -118,7 +118,7 @@ export class PurchasingController {
                             description:
                                 detail.article?.description ||
                                 "Sin descripción",
-                            amount: detail.amount,
+                            quantity: detail.quantity,
                         }));
 
                         return {
@@ -163,7 +163,7 @@ export class PurchasingController {
             const articles = await PurchaseRequestDetails.find({
                 request: idPurchaseRequest,
             })
-                .select(["amount", "article", "-_id"])
+                .select(["quantity", "article", "-_id"])
                 .populate("article", ["name", "description", "-_id"]);
 
             res.send(articles);

@@ -1,13 +1,13 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
 
 export type PurchaseRequestDetailsType = Document & {
-    amount: number;
+    quantity: number;
     article: Types.ObjectId;
     request: Types.ObjectId;
 };
 
 const purchaseRequestDetailsSchema: Schema = new Schema({
-    amount: {
+    quantity: {
         type: Number,
         require: true,
     },

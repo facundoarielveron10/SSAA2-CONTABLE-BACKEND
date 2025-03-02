@@ -22,7 +22,7 @@ const orderSchema: Schema = new Schema({
     },
     receiptDate: {
         type: Date,
-        require: true,
+        require: false,
     },
     deliveryAddress: {
         type: String,
