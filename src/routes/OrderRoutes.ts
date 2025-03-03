@@ -14,6 +14,10 @@ router.post(
         .notEmpty()
         .isArray()
         .withMessage("Las ordenes de compras son obligatorias"),
+    body("request")
+        .notEmpty()
+        .isArray()
+        .withMessage("Los pedidos de compras son obligatorios"),
     handleInputErrors,
     OrderController.createOrder
 );

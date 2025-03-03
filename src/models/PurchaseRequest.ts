@@ -4,6 +4,7 @@ export type PurchaseRequestType = Document & {
     description: string;
     requiredDate: Date;
     priority: string;
+    completed: boolean;
     user: Types.ObjectId;
     request: Types.ObjectId;
 };
@@ -19,6 +20,11 @@ const purchaseRequestSchema: Schema = new Schema({
     },
     priority: {
         type: String,
+        require: true,
+    },
+    completed: {
+        type: Boolean,
+        default: false,
         require: true,
     },
     user: {

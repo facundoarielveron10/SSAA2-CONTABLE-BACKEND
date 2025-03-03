@@ -40,6 +40,11 @@ router.get(
     PurchasingController.getAllPurchaseRequestWithArticles
 );
 router.get(
+    "/purchase-request/articles/not-completed",
+    authenticate,
+    PurchasingController.getAllPurchaseRequestNotCompletedWithArticles
+);
+router.get(
     "/purchase-request/:idPurchaseRequest",
     authenticate,
     PurchasingController.getArticlesPurchaseRequest

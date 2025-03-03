@@ -143,6 +143,94 @@ export class PurchasingController {
         }
     };
 
+    static getAllPurchaseRequestNotCompletedWithArticles = async (
+        req: CustomRequest,
+        res: Response
+    ) => {
+        try {
+            const id = req.user["id"];
+            const permissions = await hasPermissions(
+                id,
+                "GET_PURCHASE_REQUEST"
+            );
+
+            if (!permissions) {
+                return res
+                    .status(409)
+                    .json({ errors: "El Usuario no tiene permisos" });
+            }
+
+            const { page, limit } = req.query;
+            const pageNumber = page ? parseInt(page as string) : null;
+            const pageSize = limit ? parseInt(limit as string) : null;
+
+            // Filtro para los PurchaseRequest no completados
+            const filter = { completed: false };
+
+            // Obtener el total de registros sin paginado con el filtro aplicado
+            const totalPurchaseRequest = await PurchaseRequest.countDocuments(
+                filter
+            );
+
+            let purchaseRequests: any = null;
+            if (pageNumber !== null && pageSize !== null) {
+                const skip = (pageNumber - 1) * pageSize;
+                purchaseRequests = await PurchaseRequest.find(filter)
+                    .skip(skip)
+                    .limit(pageSize)
+                    .populate("user", "email")
+                    .exec();
+            } else {
+                purchaseRequests = await PurchaseRequest.find(filter)
+                    .populate("user", "email")
+                    .exec();
+            }
+
+            const purchaseRequestsWithArticles = await Promise.all(
+                purchaseRequests.map(
+                    async (purchaseRequest: PurchaseRequestType) => {
+                        const details = await PurchaseRequestDetails.find({
+                            request: purchaseRequest._id,
+                        }).populate<{
+                            article: {
+                                name: string;
+                                description: string;
+                                _id: string;
+                            };
+                        }>("article", "name description _id");
+
+                        // Extraer los artículos con su cantidad
+                        const articles = details.map((detail) => ({
+                            _id: detail.article._id || "",
+                            name: detail.article?.name || "Sin nombre",
+                            description:
+                                detail.article?.description ||
+                                "Sin descripción",
+                            quantity: detail.quantity,
+                        }));
+
+                        return {
+                            ...purchaseRequest.toObject(),
+                            articles,
+                        };
+                    }
+                )
+            );
+
+            const totalPages = pageSize
+                ? Math.ceil(totalPurchaseRequest / pageSize)
+                : 1;
+
+            res.send({
+                purchaseRequests: purchaseRequestsWithArticles,
+                totalPages,
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ errors: "Hubo un error" });
+        }
+    };
+
     static getArticlesPurchaseRequest = async (
         req: CustomRequest,
         res: Response
