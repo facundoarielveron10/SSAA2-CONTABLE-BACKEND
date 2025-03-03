@@ -31,4 +31,13 @@ router.post(
 );
 // ---- POST ---- //
 
+// ---- GET ---- //
+router.get("/purchase-orders", authenticate, OrderController.getAllOrders);
+router.get(
+    "/details/:idPurchaseOrder",
+    authenticate,
+    OrderController.getAllDetailsPurchaseOrder
+);
+// ---- GET ---- //
+
 export default router;
