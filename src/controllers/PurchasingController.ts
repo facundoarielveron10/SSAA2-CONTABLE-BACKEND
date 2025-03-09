@@ -251,9 +251,9 @@ export class PurchasingController {
             const articles = await PurchaseRequestDetails.find({
                 request: idPurchaseRequest,
             })
-                .select(["quantity", "article", "-_id"])
-                .populate("article", ["name", "description", "-_id"]);
-
+                .populate("article", ["name", "description", "-_id"])
+                .select(["quantity", "article", "-_id"]);
+            console.log(articles);
             res.send(articles);
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
@@ -303,7 +303,7 @@ export class PurchasingController {
 
             const details = articles.map(
                 (article: { id: string; quantity: number }) => ({
-                    amount: article.quantity,
+                    quantity: article.quantity,
                     article: article.id,
                     request: newPurcharseRequest._id,
                 })

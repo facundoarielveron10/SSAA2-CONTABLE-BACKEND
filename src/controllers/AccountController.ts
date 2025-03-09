@@ -98,33 +98,30 @@ export class AccountController {
 
             const { page, limit } = req.query;
 
+            const pageNumber = page ? parseInt(page as string) : null;
+            const pageSize = limit ? parseInt(limit as string) : null;
+
+            const totalAccounts = await Account.countDocuments({});
+
             let accounts = null;
-            const query: any = {};
-
-            if (page && limit) {
-                const pageNumber = parseInt(page as string) || 1;
-                const pageSize = parseInt(limit as string) || 5;
+            if (pageNumber !== null && pageSize !== null) {
                 const skip = (pageNumber - 1) * pageSize;
-
-                accounts = await Account.find(query)
-                    .select("-__v")
+                accounts = await Account.find({})
                     .skip(skip)
-                    .limit(pageSize);
-
-                const totalAccounts = await Account.countDocuments(query);
-
-                res.send({
-                    accounts,
-                    totalPages: Math.ceil(totalAccounts / pageSize),
-                });
+                    .limit(pageSize)
+                    .exec();
             } else {
-                accounts = await Account.find(query).select("-__v");
-
-                res.send({
-                    accounts,
-                    totalPages: 1,
-                });
+                accounts = await Account.find({}).exec();
             }
+
+            const totalPages = pageSize
+                ? Math.ceil(totalAccounts / pageSize)
+                : 1;
+
+            res.send({
+                accounts,
+                totalPages,
+            });
         } catch (error) {
             res.status(500).json({ errors: "Hubo un error" });
         }

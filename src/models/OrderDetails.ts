@@ -4,6 +4,7 @@ export type OrderDetailsType = Document & {
     article: Types.ObjectId;
     order: Types.ObjectId;
     price: number;
+    subtotal: number;
     quantity: number;
 };
 
@@ -17,6 +18,10 @@ const orderDetailsSchema: Schema = new Schema({
         ref: "Order",
     },
     price: {
+        type: Number,
+        require: true,
+    },
+    subtotal: {
         type: Number,
         require: true,
     },

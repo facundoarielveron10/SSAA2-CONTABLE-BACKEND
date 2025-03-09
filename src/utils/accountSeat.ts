@@ -1,4 +1,7 @@
 import Account from "../models/Account";
+import AccountSeat from "../models/AccountSeat";
+import Seat from "../models/Seat";
+import { ClientSession } from "mongoose";
 
 interface Amount {
     amount: number;
@@ -101,4 +104,125 @@ export const getTotalsDebeHaber = (seats: Seat[]): Totals => {
         },
         { debe: 0, haber: 0 }
     );
+};
+
+export const generateSeatsOrders = async (
+    price: number,
+    paymentMethod: string
+) => {
+    let idAccount = null;
+    if (paymentMethod === "Efectivo") {
+        idAccount = await Account.findOne({ code: 1100 });
+    } else {
+        idAccount = await Account.findOne({ code: 1200 });
+    }
+    const idInventoryAccount = await Account.findOne({ code: 1300 });
+    const seats = [
+        {
+            account: idAccount._id,
+            amount: { amount: price, type: "haber" },
+        },
+        {
+            account: idInventoryAccount._id,
+            amount: { amount: price, type: "debe" },
+        },
+    ];
+
+    return seats;
+};
+
+export const createSeat = async (
+    description: string,
+    seats: Array<any>,
+    userId: string,
+    session?: ClientSession
+) => {
+    // VALIDAMOS QUE MINIMO HAYA 2 ASIENTOS
+    if (!seats || seats.length < 2) {
+        throw new Error("Mínimo 2 registros");
+    }
+
+    // OBTENEMOS TOTAL DEL DEBE Y HABER
+    const { debe, haber } = getTotalsDebeHaber(seats);
+
+    // VALIDAMOS QUE DEBE - HABER NOS DE 0
+    if (!isValidValues(debe, haber)) {
+        throw new Error('Valores de "debe" y "haber" incorrectos');
+    }
+
+    // OBTENEMOS EL ÚLTIMO NÚMERO DE ASIENTO
+    const lastSeat = await Seat.findOne()
+        .sort({ number: -1 })
+        .session(session)
+        .exec();
+    const nextSeatNumber = lastSeat ? lastSeat.number + 1 : 1;
+
+    // CREAMOS EL ASIENTO PRINCIPAL
+    const newSeat = new Seat({
+        date: Date.now(),
+        description: description,
+        user: userId,
+        number: nextSeatNumber,
+    });
+
+    // GUARDAMOS EL ASIENTO
+    await newSeat.save({ session });
+
+    // CREAMOS UN ASIENTO POR CADA REGISTRO QUE NOS LLEGO
+    for (const seat of seats) {
+        // OBTENEMOS EL ID DE LA CUENTA Y EL MONTO
+        const { account, amount } = seat;
+
+        // ASIGNAMOS LOS VALORES DE DEBE Y HABER SEGÚN EL TIPO
+        const debe = amount.type === "debe" ? amount.amount : 0;
+        const haber = amount.type === "haber" ? amount.amount : 0;
+
+        // BUSCAMOS LA CUENTA INVOLUCRADA EN EL ASIENTO
+        const accountToUpdate = await Account.findById(account).session(
+            session
+        );
+        // VALIDAMOS QUE EXISTA LA CUENTA
+        if (!accountToUpdate) {
+            throw new Error("Cuenta no encontrada");
+        }
+
+        // AJUSTE DEL BALANCE SEGÚN EL TIPO DE CUENTA
+        let newBalance = 0;
+        if (
+            accountToUpdate.type === "Pasivo" ||
+            accountToUpdate.type === "PN" ||
+            accountToUpdate.type === "R+"
+        ) {
+            // Para "Pasivo", "PN" y "R+", aumentamos con el haber y disminuimos con el debe
+            newBalance = accountToUpdate.balance + haber - debe;
+        } else {
+            // Para otros tipos de cuentas (e.g. Activo, R-), hacemos lo opuesto
+            newBalance = accountToUpdate.balance + debe - haber;
+        }
+
+        // VALIDAMOS QUE EL NUEVO SALDO NO SEA NEGATIVO
+        if (newBalance < 0) {
+            throw new Error(
+                `La cuenta ${accountToUpdate.nameAccount} quedaría con saldo negativo`
+            );
+        }
+
+        // ACTUALIZAMOS EL SALDO DE LA CUENTA INVOLUCRADA
+        accountToUpdate.balance = newBalance;
+
+        // CREAMOS EL ASIENTO
+        const newAccountSeat = new AccountSeat({
+            account: account,
+            seat: newSeat._id,
+            debe: debe,
+            haber: haber,
+            balance: newBalance,
+        });
+
+        // GUARDAMOS EL ASIENTO Y LA CUENTA
+        await Promise.allSettled([
+            newAccountSeat.save({ session }),
+            accountToUpdate.save({ session }),
+        ]);
+    }
 };

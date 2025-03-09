@@ -4,8 +4,6 @@ export type StockType = Document & {
     article: Types.ObjectId;
     stock: number;
     arrivalDate: Date;
-    expirationDate: Date;
-    state: string;
 };
 
 const stockSchema: Schema = new Schema({
@@ -19,14 +17,6 @@ const stockSchema: Schema = new Schema({
     },
     arrivalDate: {
         type: Date,
-        require: true,
-    },
-    expirationDate: {
-        type: Date,
-        require: true,
-    },
-    state: {
-        type: String,
         require: true,
     },
 });
